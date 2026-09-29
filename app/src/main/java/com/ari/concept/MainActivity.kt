@@ -3,25 +3,37 @@ package com.ari.concept
 import android.content.Intent
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
-import android.widget.ImageView
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Apps
+import androidx.compose.material.icons.filled.Block
+import androidx.compose.material.icons.filled.Language
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.SportsEsports
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.viewinterop.AndroidView
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import java.net.HttpURLConnection
+import java.net.URL
 
 data class AppItem(val label:String,val packageName:String,val info:ApplicationInfo)
 data class StoreItem(val label:String,val packageName:String)
@@ -66,41 +78,54 @@ class MainActivity: ComponentActivity() {
             .distinctBy { it.packageName }
             .sortedBy { it.label.lowercase() }
 
-    private fun installedGames():List<AppItem> = emptyList()
-
     private fun openPlay(pkg:String){
-        val url="https://play.google.com/store/apps/details?id=$pkg"
+        val url="https://play.google.com/store/apps/details?id=$pkg&hl=he&gl=IL"
         startActivity(Intent(this,RestrictedWebActivity::class.java).putExtra("url",url).putExtra("exact",url))
     }
 
     @Composable private fun Icon(app:AppItem){
-        AndroidView(factory={ ImageView(it).apply{ setImageDrawable(app.info.loadIcon(packageManager)); scaleType=ImageView.ScaleType.CENTER_INSIDE } },
-            modifier=Modifier.size(48.dp))
+        androidx.compose.ui.viewinterop.AndroidView(factory={ android.widget.ImageView(it).apply {
+            setImageDrawable(app.info.loadIcon(packageManager))
+            scaleType=android.widget.ImageView.ScaleType.CENTER_INSIDE
+        }},modifier=Modifier.size(48.dp))
     }
 
-    @Composable private fun Card(app:AppItem,onClick:()->Unit,trailing: (@Composable () -> Unit)? = null){
+    @Composable private fun Card(app:AppItem,onClick:()->Unit,trailing:(@Composable()->Unit)?=null){
         Card(Modifier.fillMaxWidth().padding(vertical=4.dp).clickable{onClick()}){
             Row(Modifier.fillMaxWidth().padding(12.dp),verticalAlignment=Alignment.CenterVertically){
-                Icon(app); Spacer(Modifier.width(12.dp)); Text(app.label,Modifier.weight(1f))
-                trailing?.invoke()
+                Icon(app); Spacer(Modifier.width(12.dp)); Text(app.label,Modifier.weight(1f)); trailing?.invoke()
             }
         }
     }
 
-    @Composable private fun StoreCard(item:StoreItem,onClick:()->Unit){
-        val appInfo = remember(item.packageName) {
-            runCatching { packageManager.getApplicationInfo(item.packageName,0) }.getOrNull()
-        }
-        Card(Modifier.fillMaxWidth().padding(vertical=4.dp).clickable{onClick()}){
+    private suspend fun loadPlayIcon(pkg:String):Bitmap? = withContext(Dispatchers.IO) {
+        runCatching {
+            val page=URL("https://play.google.com/store/apps/details?id=$pkg&hl=en&gl=US").openConnection() as HttpURLConnection
+            page.connectTimeout=10000
+            page.readTimeout=10000
+            page.setRequestProperty("User-Agent","Mozilla/5.0")
+            val html=page.inputStream.bufferedReader().use { it.readText() }
+            page.disconnect()
+            val match=Regex("""<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']""",RegexOption.IGNORE_CASE).find(html)
+                ?: Regex("""<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']""",RegexOption.IGNORE_CASE).find(html)
+            val imageUrl=match?.groupValues?.get(1)?.replace("&amp;","&") ?: return@withContext null
+            val img=URL(imageUrl).openConnection() as HttpURLConnection
+            img.connectTimeout=10000
+            img.readTimeout=10000
+            img.setRequestProperty("User-Agent","Mozilla/5.0")
+            val bitmap=img.inputStream.use { BitmapFactory.decodeStream(it) }
+            img.disconnect()
+            bitmap
+        }.getOrNull()
+    }
+
+    @Composable private fun PlayStoreCard(item:StoreItem){
+        var bitmap by remember(item.packageName){ mutableStateOf<Bitmap?>(null) }
+        LaunchedEffect(item.packageName){ bitmap=loadPlayIcon(item.packageName) }
+        Card(Modifier.fillMaxWidth().padding(vertical=4.dp).clickable{openPlay(item.packageName)}){
             Row(Modifier.fillMaxWidth().padding(12.dp),verticalAlignment=Alignment.CenterVertically){
-                if(appInfo != null){
-                    AndroidView(factory={ ImageView(it).apply {
-                        setImageDrawable(appInfo.loadIcon(packageManager))
-                        scaleType=ImageView.ScaleType.CENTER_INSIDE
-                    }},modifier=Modifier.size(48.dp))
-                } else {
-                    Text("🎮",style=MaterialTheme.typography.headlineSmall,modifier=Modifier.size(48.dp))
-                }
+                if(bitmap!=null) Image(bitmap!!.asImageBitmap(),contentDescription=item.label,modifier=Modifier.size(56.dp))
+                else Box(Modifier.size(56.dp),contentAlignment=Alignment.Center){ Icon(Icons.Default.SportsEsports,null,modifier=Modifier.size(36.dp)) }
                 Spacer(Modifier.width(12.dp))
                 Text(item.label,Modifier.weight(1f))
                 Text("Google Play")
@@ -111,9 +136,10 @@ class MainActivity: ComponentActivity() {
     @Composable fun App(){
         var tab by remember{mutableIntStateOf(0)}
         val labels=listOf("משחקים","אפליקציות","אתרים","חסימה","הגדרות")
+        val icons=listOf(Icons.Default.SportsEsports,Icons.Default.Apps,Icons.Default.Language,Icons.Default.Block,Icons.Default.Settings)
         Scaffold(bottomBar={
             NavigationBar{
-                labels.forEachIndexed{ i,t -> NavigationBarItem(selected=tab==i,onClick={tab=i},icon={Text(if(i==3)"●" else "•")},label={Text(t)}) }
+                labels.forEachIndexed{ i,t -> NavigationBarItem(selected=tab==i,onClick={tab=i},icon={Icon(icons[i],contentDescription=t)},label={Text(t)}) }
             }
         }){p-> Column(Modifier.fillMaxSize().padding(p).padding(12.dp)){
             when(tab){0->Games();1->Apps();2->Sites();3->BlockApps();4->SettingsScreen()}
@@ -121,41 +147,33 @@ class MainActivity: ComponentActivity() {
     }
 
     @Composable fun Apps(){
-        val apps by produceState(initialValue=emptyList<AppItem>()){
-            value=usefulApps.mapNotNull { (label,pkg) ->
-                runCatching { packageManager.getApplicationInfo(pkg,0) }.getOrNull()?.let { AppItem(label,pkg,it) }
-            }
-        }
-        Text("אפליקציות שימושיות",style=MaterialTheme.typography.headlineMedium)
-        Text("שירותים שימושיים וחיוניים בלבד.")
-        LazyColumn{items(apps,key={it.packageName}){a->Card(a,{openPlay(a.packageName)})}}
+        val apps=usefulApps.map{StoreItem(it.first,it.second)}
+        Text("אפליקציות",style=MaterialTheme.typography.headlineMedium)
+        LazyColumn{items(apps,key={it.packageName}){a->PlayStoreCard(a)}}
     }
 
     @Composable fun Games(){
         val games=listOf(
-            StoreItem("שחמט", "com.chess"),
-            StoreItem("סודוקו", "com.easybrain.sudoku.android"),
-            StoreItem("Flow Free", "com.bigduckgames.flow"),
-            StoreItem("2048", "com.androbaby.game2048"),
-            StoreItem("Solitaire", "com.mobirix.solitaire"),
-            StoreItem("Block Puzzle", "com.blockpuzzle.game"),
-            StoreItem("Word Search", "com.wordsearch.puzzle"),
-            StoreItem("Minesweeper", "com.microsoft.minesweeper"),
-            StoreItem("Tetris", "com.n3twork.tetris"),
-            StoreItem("Chess Kid", "com.chesskid")
+            StoreItem("שחמט","com.chess"),
+            StoreItem("סודוקו","com.easybrain.sudoku.android"),
+            StoreItem("Flow Free","com.bigduckgames.flow"),
+            StoreItem("2048","com.androbaby.game2048"),
+            StoreItem("Solitaire","com.mobirix.solitaire"),
+            StoreItem("Block Puzzle","com.blockpuzzle.game"),
+            StoreItem("Word Search","com.wordsearch.puzzle"),
+            StoreItem("Minesweeper","com.microsoft.minesweeper"),
+            StoreItem("Tetris","com.n3twork.tetris"),
+            StoreItem("ChessKid","com.chesskid")
         )
         Text("משחקים",style=MaterialTheme.typography.headlineMedium)
-        Text("משחקים משפחתיים ורגועים שנבחרו מראש.")
-        LazyColumn{items(games,key={it.packageName}){g->StoreCard(g,{openPlay(g.packageName)})}}
+        LazyColumn{items(games,key={it.packageName}){g->PlayStoreCard(g)}}
     }
 
     @Composable fun Sites(){
         Text("אתרים",style=MaterialTheme.typography.headlineMedium)
-        Text("אתרים שימושיים שנבחרו מראש.")
         LazyColumn{items(sites){(name,url)->
             Card(AppItem(name,"",applicationInfo),{
-                startActivity(Intent(this@MainActivity,RestrictedWebActivity::class.java)
-                    .putExtra("url",url).putExtra("exact",url))
+                startActivity(Intent(this@MainActivity,RestrictedWebActivity::class.java).putExtra("url",url).putExtra("exact",url))
             })
         }}
     }
@@ -165,7 +183,6 @@ class MainActivity: ComponentActivity() {
         val prefs=getSharedPreferences("blocked",MODE_PRIVATE)
         var blocked by remember{mutableStateOf(prefs.all.filterValues{it is Boolean && it}.keys.toSet())}
         Text("חסימת אפליקציות",style=MaterialTheme.typography.headlineMedium)
-        Text("מוצגות רק אפליקציות שמותקנות בטלפון. לחץ על כל הכרטיס כדי להפעיל או לכבות.")
         LazyColumn{items(apps,key={it.packageName}){a->
             val on=a.packageName in blocked
             Card(a,{
@@ -177,19 +194,15 @@ class MainActivity: ComponentActivity() {
     }
 
     @Composable fun SettingsScreen(){
-        Text("הגדרות ואישורים",style=MaterialTheme.typography.headlineMedium)
-        Spacer(Modifier.height(8.dp))
-        Text("הפעל את ההרשאות הדרושות לחסימת אפליקציות ולהצגה מעל אפליקציות אחרות.")
+        Text("הגדרות",style=MaterialTheme.typography.headlineMedium)
         Spacer(Modifier.height(12.dp))
-        Button({startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))},Modifier.fillMaxWidth()){Text("הרשאת נגישות — חסימת אפליקציות")}
+        Button({startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))},Modifier.fillMaxWidth()){Text("נגישות")}
         Spacer(Modifier.height(8.dp))
-        Button({startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,Uri.parse("package:$packageName")))},Modifier.fillMaxWidth()){Text("הצגה מעל אפליקציות אחרות")}
+        Button({startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,Uri.parse("package:$packageName")))},Modifier.fillMaxWidth()){Text("הצגה מעל אפליקציות")}
         Spacer(Modifier.height(8.dp))
-        Button({startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))},Modifier.fillMaxWidth()){Text("גישה לנתוני שימוש")}
+        Button({startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))},Modifier.fillMaxWidth()){Text("נתוני שימוש")}
         Spacer(Modifier.height(8.dp))
         Button({startActivity(Intent(Settings.ACTION_SETTINGS))},Modifier.fillMaxWidth()){Text("הגדרות Android")}
-        Spacer(Modifier.height(12.dp))
-        Text("מניעת הסרה מלאה מחייבת ניהול מכשיר / Device Owner; אפליקציה רגילה אינה יכולה להבטיח זאת.")
     }
 }
 
@@ -204,15 +217,15 @@ class RestrictedWebActivity:ComponentActivity(){
             settings.domStorageEnabled=true
             settings.setSupportMultipleWindows(false)
             settings.javaScriptCanOpenWindowsAutomatically=false
+            settings.loadsImagesAutomatically=true
+            settings.allowFileAccess=false
+            settings.allowContentAccess=true
             webViewClient=object:WebViewClient(){
                 override fun shouldOverrideUrlLoading(view:WebView,request:WebResourceRequest):Boolean{
                     val host=request.url.host
                     return host == null || host != allowedHost
                 }
             }
-            settings.loadsImagesAutomatically=true
-            settings.allowFileAccess=false
-            settings.allowContentAccess=true
             loadUrl(exact)
         }
         val root=android.widget.LinearLayout(this).apply{orientation=android.widget.LinearLayout.VERTICAL}
