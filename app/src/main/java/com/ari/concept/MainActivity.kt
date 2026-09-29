@@ -29,6 +29,7 @@ import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SportsEsports
 import androidx.compose.material3.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -107,9 +108,56 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val password = getSharedPreferences("concept_security", MODE_PRIVATE)
+            .getString("login_password", null)
         setContent {
             CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
-                App()
+                var unlocked by rememberSaveable { mutableStateOf(password.isNullOrEmpty()) }
+                if (unlocked) {
+                    App()
+                } else {
+                    LoginGate(
+                        correctPassword = password.orEmpty(),
+                        onUnlocked = { unlocked = true }
+                    )
+                }
+            }
+        }
+    }
+
+    @Composable
+    private fun LoginGate(correctPassword: String, onUnlocked: () -> Unit) {
+        var entered by rememberSaveable { mutableStateOf("") }
+        var error by rememberSaveable { mutableStateOf(false) }
+
+        Column(
+            modifier = Modifier.fillMaxSize().padding(28.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text("Concept", style = MaterialTheme.typography.headlineLarge)
+            Spacer(Modifier.height(12.dp))
+            Text("האפליקציה מוגנת בסיסמה", style = MaterialTheme.typography.titleMedium)
+            Spacer(Modifier.height(20.dp))
+            OutlinedTextField(
+                value = entered,
+                onValueChange = { entered = it; error = false },
+                label = { Text("סיסמה") },
+                singleLine = true,
+                isError = error,
+                modifier = Modifier.fillMaxWidth()
+            )
+            if (error) {
+                Text("סיסמה שגויה", color = MaterialTheme.colorScheme.error)
+            }
+            Spacer(Modifier.height(12.dp))
+            Button(
+                onClick = {
+                    if (entered == correctPassword) onUnlocked() else error = true
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("כניסה")
             }
         }
     }
@@ -534,11 +582,73 @@ class MainActivity : ComponentActivity() {
 
             Spacer(Modifier.height(8.dp))
 
+            var password by remember {
+                mutableStateOf(
+                    getSharedPreferences("concept_security", MODE_PRIVATE)
+                        .getString("login_password", "") ?: ""
+                )
+            }
+            var showPasswordDialog by remember { mutableStateOf(false) }
+            var newPassword by remember { mutableStateOf("") }
+            var confirmPassword by remember { mutableStateOf("") }
+            var passwordError by remember { mutableStateOf("") }
+
             Button(
-                onClick = { startActivity(Intent(Settings.ACTION_SETTINGS)) },
+                onClick = {
+                    newPassword = password
+                    confirmPassword = password
+                    passwordError = ""
+                    showPasswordDialog = true
+                },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("הגדרות Android")
+                Text(if (password.isBlank()) "הגדרת סיסמת כניסה" else "שינוי סיסמת כניסה")
+            }
+
+            if (showPasswordDialog) {
+                AlertDialog(
+                    onDismissRequest = { showPasswordDialog = false },
+                    title = { Text("סיסמת כניסה") },
+                    text = {
+                        Column {
+                            Text("בחר סיסמה חופשית. אפשר להשתמש בעברית, אותיות, מספרים וסימנים.")
+                            Spacer(Modifier.height(10.dp))
+                            OutlinedTextField(
+                                value = newPassword,
+                                onValueChange = { newPassword = it; passwordError = "" },
+                                label = { Text("סיסמה") },
+                                singleLine = true
+                            )
+                            Spacer(Modifier.height(8.dp))
+                            OutlinedTextField(
+                                value = confirmPassword,
+                                onValueChange = { confirmPassword = it; passwordError = "" },
+                                label = { Text("אימות סיסמה") },
+                                singleLine = true
+                            )
+                            if (passwordError.isNotBlank()) {
+                                Text(passwordError, color = MaterialTheme.colorScheme.error)
+                            }
+                        }
+                    },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            when {
+                                newPassword.isBlank() -> passwordError = "יש להזין סיסמה"
+                                newPassword != confirmPassword -> passwordError = "הסיסמאות אינן זהות"
+                                else -> {
+                                    getSharedPreferences("concept_security", MODE_PRIVATE)
+                                        .edit().putString("login_password", newPassword).apply()
+                                    password = newPassword
+                                    showPasswordDialog = false
+                                }
+                            }
+                        }) { Text("שמירה") }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showPasswordDialog = false }) { Text("ביטול") }
+                    }
+                )
             }
         }
     }
