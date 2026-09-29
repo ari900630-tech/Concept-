@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 
 data class AppItem(val label:String,val packageName:String,val info:ApplicationInfo)
+data class StoreItem(val label:String,val packageName:String)
 
 class MainActivity: ComponentActivity() {
     private val sites=listOf(
@@ -86,6 +87,17 @@ class MainActivity: ComponentActivity() {
         }
     }
 
+    @Composable private fun StoreCard(item:StoreItem,onClick:()->Unit){
+        Card(Modifier.fillMaxWidth().padding(vertical=4.dp).clickable{onClick()}){
+            Row(Modifier.fillMaxWidth().padding(12.dp),verticalAlignment=Alignment.CenterVertically){
+                Text("🎮",style=MaterialTheme.typography.headlineSmall)
+                Spacer(Modifier.width(12.dp))
+                Text(item.label,Modifier.weight(1f))
+                Text("Google Play")
+            }
+        }
+    }
+
     @Composable fun App(){
         var tab by remember{mutableIntStateOf(0)}
         val labels=listOf("משחקים","אפליקציות","אתרים","חסימה","הגדרות")
@@ -110,12 +122,21 @@ class MainActivity: ComponentActivity() {
     }
 
     @Composable fun Games(){
-        val games by produceState(initialValue=emptyList<AppItem>()){
-            value=installedApps().filter { false }
-        }
+        val games=listOf(
+            StoreItem("שחמט", "com.chess"),
+            StoreItem("סודוקו", "com.easybrain.sudoku.android"),
+            StoreItem("Flow Free", "com.bigduckgames.flow"),
+            StoreItem("2048", "com.androbaby.game2048"),
+            StoreItem("Solitaire", "com.mobirix.solitaire"),
+            StoreItem("Block Puzzle", "com.blockpuzzle.game"),
+            StoreItem("Word Search", "com.wordsearch.puzzle"),
+            StoreItem("Minesweeper", "com.microsoft.minesweeper"),
+            StoreItem("Tetris", "com.n3twork.tetris"),
+            StoreItem("Chess Kid", "com.chesskid")
+        )
         Text("משחקים",style=MaterialTheme.typography.headlineMedium)
-        Text("אזור משחקים משפחתיים; ניתן להרחיב את הרשימה בהמשך.")
-        LazyColumn{items(games,key={it.packageName}){a->Card(a,{openPlay(a.packageName)})}}
+        Text("משחקים משפחתיים ורגועים שנבחרו מראש.")
+        LazyColumn{items(games,key={it.packageName}){g->StoreCard(g,{openPlay(g.packageName)})}}
     }
 
     @Composable fun Sites(){
