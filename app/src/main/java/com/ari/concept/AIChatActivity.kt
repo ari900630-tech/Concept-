@@ -23,6 +23,39 @@ import java.net.URL
 data class AIMessage(val user:Boolean,val text:String)
 
 class AIChatActivity:ComponentActivity(){
+    private val appCatalog = mapOf(
+        "וואטסאפ" to ("WhatsApp" to "com.whatsapp"),
+        "whatsapp" to ("WhatsApp" to "com.whatsapp"),
+        "וויז" to ("Waze" to "com.waze"),
+        "waze" to ("Waze" to "com.waze"),
+        "מפות" to ("Google Maps" to "com.google.android.apps.maps"),
+        "כרום" to ("Google Chrome" to "com.android.chrome"),
+        "chrome" to ("Google Chrome" to "com.android.chrome"),
+        "יוטיוב" to ("YouTube" to "com.google.android.youtube"),
+        "youtube" to ("YouTube" to "com.google.android.youtube"),
+        "ג׳ימייל" to ("Gmail" to "com.google.android.gm"),
+        "gmail" to ("Gmail" to "com.google.android.gm"),
+        "טלגרם" to ("Telegram" to "org.telegram.messenger"),
+        "telegram" to ("Telegram" to "org.telegram.messenger"),
+        "אינסטגרם" to ("Instagram" to "com.instagram.android"),
+        "instagram" to ("Instagram" to "com.instagram.android"),
+        "טיקטוק" to ("TikTok" to "com.zhiliaoapp.musically"),
+        "tiktok" to ("TikTok" to "com.zhiliaoapp.musically")
+    )
+
+    private fun handleAddAppCommand(q:String):String? {
+        val normalized=q.trim()
+        val prefix=Regex("""^(?:הוסף|תוסיף)\s+אפליקציה\s+(.+)$""", RegexOption.IGNORE_CASE)
+        val match=prefix.find(normalized) ?: return null
+        val requested=match.groupValues[1].trim().lowercase()
+        val item=appCatalog[requested] ?: appCatalog.entries.firstOrNull { requested.contains(it.key) || it.key.contains(requested) }?.value
+            ?: return "כדי להוסיף את האפליקציה, כתוב את שמה מתוך האפליקציות הנתמכות כרגע: WhatsApp, Waze, Chrome, YouTube, Gmail, Telegram, Instagram או TikTok."
+        val prefs=getSharedPreferences("concept_items", MODE_PRIVATE)
+        val current=prefs.getStringSet("apps", emptySet()).orEmpty().toMutableSet()
+        current.add(item.first + "|" + item.second)
+        prefs.edit().putStringSet("apps", current).apply()
+        return "הוספתי את " + item.first + " לרשימת האפליקציות בחנות. עכשיו היא תופיע שם ותיפתח דרך Google Play."
+    }
     override fun onCreate(b:Bundle?){super.onCreate(b);setContent{AIChat()}}
     private suspend fun askGroq(messages:List<AIMessage>):String=withContext(Dispatchers.IO){
         val key=BuildConfig.GROQ_API_KEY
@@ -68,8 +101,11 @@ class AIChatActivity:ComponentActivity(){
                         val q=input.trim();input=""
                         val sent=messages+AIMessage(true,q);messages=sent;loading=true
                         scope.launch{
-                            try{val answer=askGroq(sent);messages=sent+AIMessage(false,answer)}
-                            catch(e:Exception){messages=sent+AIMessage(false,e.message ?: "לא הצלחתי להתחבר לשרת ה-AI.")}
+                            try{
+                                val commandAnswer=handleAddAppCommand(q)
+                                val answer=commandAnswer ?: askGroq(sent)
+                                messages=sent+AIMessage(false,answer)
+                            } catch(e:Exception){messages=sent+AIMessage(false,e.message ?: "לא הצלחתי להתחבר לשרת ה-AI.")}
                             finally{loading=false}
                         }
                     }){Text(if(loading)"..." else "שלח")}
