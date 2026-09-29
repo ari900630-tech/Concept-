@@ -72,10 +72,8 @@ class MainActivity: ComponentActivity() {
     @Composable fun Games(){
         Text("משחקים",style=MaterialTheme.typography.headlineMedium)
         Text("הטעינה נעשית בהדרגה.")
-        LazyColumn { items(listOf("משחקים ב-Google Play")){x->
-            Card(Modifier.fillMaxWidth().padding(vertical=6.dp).clickable {
-                startActivity(Intent(Intent.ACTION_VIEW,Uri.parse("market://search?q=games")))
-            }){Text(x,Modifier.padding(18.dp))}
+        LazyColumn { items(listOf("Candy Crush Saga" to "com.king.candycrushsaga","Clash of Clans" to "com.supercell.clashofclans")){(name,pkg)->
+            Card(Modifier.fillMaxWidth().padding(vertical=6.dp).clickable { playStore(pkg) }){Text(name,Modifier.padding(18.dp))}
         }}
     }
 
@@ -108,7 +106,7 @@ class RestrictedWebActivity: ComponentActivity(){
             webViewClient=object:WebViewClient(){
                 override fun shouldOverrideUrlLoading(view:WebView,request:WebResourceRequest):Boolean{
                     val u=request.url
-                    return u.host != allowed.host
+                    return u.host != allowed.host || u.path != allowed.path
                 }
             }
             loadUrl(allowed.toString())
