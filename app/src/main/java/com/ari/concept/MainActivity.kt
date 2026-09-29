@@ -88,9 +88,19 @@ class MainActivity: ComponentActivity() {
     }
 
     @Composable private fun StoreCard(item:StoreItem,onClick:()->Unit){
+        val appInfo = remember(item.packageName) {
+            runCatching { packageManager.getApplicationInfo(item.packageName,0) }.getOrNull()
+        }
         Card(Modifier.fillMaxWidth().padding(vertical=4.dp).clickable{onClick()}){
             Row(Modifier.fillMaxWidth().padding(12.dp),verticalAlignment=Alignment.CenterVertically){
-                Text("🎮",style=MaterialTheme.typography.headlineSmall)
+                if(appInfo != null){
+                    AndroidView(factory={ ImageView(it).apply {
+                        setImageDrawable(appInfo.loadIcon(packageManager))
+                        scaleType=ImageView.ScaleType.CENTER_INSIDE
+                    }},modifier=Modifier.size(48.dp))
+                } else {
+                    Text("🎮",style=MaterialTheme.typography.headlineSmall,modifier=Modifier.size(48.dp))
+                }
                 Spacer(Modifier.width(12.dp))
                 Text(item.label,Modifier.weight(1f))
                 Text("Google Play")
@@ -188,6 +198,7 @@ class RestrictedWebActivity:ComponentActivity(){
         super.onCreate(b)
         val start=Uri.parse(intent.getStringExtra("url") ?: "https://www.google.com/")
         val exact=intent.getStringExtra("exact") ?: start.toString()
+        val allowedHost=start.host
         val w=WebView(this).apply{
             settings.javaScriptEnabled=true
             settings.domStorageEnabled=true
@@ -195,9 +206,13 @@ class RestrictedWebActivity:ComponentActivity(){
             settings.javaScriptCanOpenWindowsAutomatically=false
             webViewClient=object:WebViewClient(){
                 override fun shouldOverrideUrlLoading(view:WebView,request:WebResourceRequest):Boolean{
-                    return request.url.toString()!=exact
+                    val host=request.url.host
+                    return host == null || host != allowedHost
                 }
             }
+            settings.loadsImagesAutomatically=true
+            settings.allowFileAccess=false
+            settings.allowContentAccess=true
             loadUrl(exact)
         }
         val root=android.widget.LinearLayout(this).apply{orientation=android.widget.LinearLayout.VERTICAL}
