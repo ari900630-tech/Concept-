@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.delay
 import java.net.HttpURLConnection
 import java.net.URL
 
@@ -105,6 +106,9 @@ class MainActivity: ComponentActivity() {
         }
     }
     @Composable fun App(){
+        var ready by remember{mutableStateOf(false)}
+        LaunchedEffect(Unit){ delay(900); ready=true }
+        if(!ready){ Box(Modifier.fillMaxSize(),contentAlignment=Alignment.Center){ Column(horizontalAlignment=Alignment.CenterHorizontally){ Text("Concept",style=MaterialTheme.typography.headlineLarge); Spacer(Modifier.height(16.dp)); CircularProgressIndicator(); Spacer(Modifier.height(12.dp)); Text("טוען...") } }; return }
         var tab by remember{mutableIntStateOf(0)}
         val labels=listOf("משחקים","אפליקציות","אתרים","חסימה","הגדרות")
         val icons=listOf(Icons.Default.SportsEsports,Icons.Default.Apps,Icons.Default.Language,Icons.Default.Block,Icons.Default.Settings)
