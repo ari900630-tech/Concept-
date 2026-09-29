@@ -27,7 +27,7 @@ class AppBlockAccessibilityService : AccessibilityService() {
 
     override fun onAccessibilityEvent(event: android.view.accessibility.AccessibilityEvent?) {
         val pkg = event?.packageName?.toString() ?: return
-        val root = event?.source?.root
+        val root = event?.source
             ?: windows.firstOrNull { it.root?.packageName?.toString() == pkg }?.root
 
         if (pkg == "com.android.settings" ||
