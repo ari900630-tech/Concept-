@@ -10,6 +10,7 @@ import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
+import android.util.LruCache
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -143,38 +144,50 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private suspend fun loadPlayIcon(pkg: String): Bitmap? = withContext(Dispatchers.IO) {
+    private val imageCache = LruCache<String, Bitmap>(80)
+
+    private suspend fun loadBitmap(url: String, cacheKey: String): Bitmap? = withContext(Dispatchers.IO) {
+        imageCache.get(cacheKey)?.let { return@withContext it }
         runCatching {
-            val page = URL("https://play.google.com/store/apps/details?id=$pkg&hl=en&gl=US")
-                .openConnection() as HttpURLConnection
-            page.connectTimeout = 10000
-            page.readTimeout = 10000
-            page.setRequestProperty("User-Agent", "Mozilla/5.0")
-            val html = page.inputStream.bufferedReader().use { it.readText() }
-            page.disconnect()
-
-            val match =
-                Regex("""<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']""", RegexOption.IGNORE_CASE)
-                    .find(html)
-                    ?: Regex("""<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']""", RegexOption.IGNORE_CASE)
-                        .find(html)
-
-            val imageUrl = match?.groupValues?.get(1)?.replace("&amp;", "&") ?: return@withContext null
-            val img = URL(imageUrl).openConnection() as HttpURLConnection
-            img.connectTimeout = 10000
-            img.readTimeout = 10000
-            img.setRequestProperty("User-Agent", "Mozilla/5.0")
-            val bitmap = img.inputStream.use { BitmapFactory.decodeStream(it) }
-            img.disconnect()
+            val connection = URL(url).openConnection() as HttpURLConnection
+            connection.connectTimeout = 8000
+            connection.readTimeout = 8000
+            connection.setRequestProperty("User-Agent", "Mozilla/5.0")
+            val bitmap = connection.inputStream.use { BitmapFactory.decodeStream(it) }
+            connection.disconnect()
+            if (bitmap != null) imageCache.put(cacheKey, bitmap)
             bitmap
         }.getOrNull()
     }
 
+    private suspend fun loadPlayIcon(pkg: String): Bitmap? = withContext(Dispatchers.IO) {
+        val cacheKey = "play:$pkg"
+        imageCache.get(cacheKey)?.let { return@withContext it }
+        runCatching {
+            val page = URL("https://play.google.com/store/apps/details?id=$pkg&hl=he&gl=IL").openConnection() as HttpURLConnection
+            page.connectTimeout = 8000
+            page.readTimeout = 8000
+            page.setRequestProperty("User-Agent", "Mozilla/5.0")
+            page.setRequestProperty("Accept-Language", "he-IL,he;q=0.9,en;q=0.8")
+            val html = page.inputStream.bufferedReader().use { it.readText() }
+            page.disconnect()
+            val imageUrl = Regex("<meta[^>]+property=[\\\"']og:image[\\\"'][^>]+content=[\\\"']([^\\\"']+)[\\\"']>", RegexOption.IGNORE_CASE).find(html)?.groupValues?.get(1)
+                ?: Regex("<meta[^>]+content=[\\\"']([^\\\"']+)[\\\"'][^>]+property=[\\\"']og:image[\\\"']>", RegexOption.IGNORE_CASE).find(html)?.groupValues?.get(1)
+            val cleanedUrl = imageUrl?.replace("&amp;", "&") ?: return@withContext null
+            loadBitmap(cleanedUrl, cacheKey)
+        }.getOrNull()
+    }
+
+    private suspend fun loadSiteIcon(siteUrl: String): Bitmap? {
+        val host = Uri.parse(siteUrl).host ?: return null
+        return loadBitmap("https://www.google.com/s2/favicons?domain=$host&sz=128", "site:$host")
+    }
     @Composable
     private fun PlayStoreCard(item: StoreItem) {
-        var bitmap by remember(item.packageName) { mutableStateOf<Bitmap?>(null) }
+        var bitmap by remember(item.packageName) { mutableStateOf(imageCache.get("play:${item.packageName}")) }
         LaunchedEffect(item.packageName) {
-            bitmap = loadPlayIcon(item.packageName)
+            val loaded = loadPlayIcon(item.packageName)
+            if (loaded != null) bitmap = loaded
         }
 
         androidx.compose.material3.Card(
@@ -360,20 +373,26 @@ class MainActivity : ComponentActivity() {
                 textAlign = TextAlign.Right
             )
             LazyColumn(Modifier.weight(1f)) {
-                items(sites) { (name, url) ->
-                    val info = applicationInfo
-                    AppCard(
-                        AppItem(name, "", info),
-                        onClick = {
-                            startActivity(
-                                Intent(this@MainActivity, RestrictedWebActivity::class.java)
-                                    .putExtra("url", url)
-                                    .putExtra("exact", url)
-                            )
+                items(sites, key = { it.first }) { (name, url) ->
+                    var bitmap by remember(url) { mutableStateOf(imageCache.get("site:${Uri.parse(url).host}")) }
+                    LaunchedEffect(url) {
+                        val loaded = loadSiteIcon(url)
+                        if (loaded != null) bitmap = loaded
+                    }
+                    androidx.compose.material3.Card(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp).clickable {
+                            startActivity(Intent(this@MainActivity, RestrictedWebActivity::class.java).putExtra("url", url).putExtra("exact", url))
                         }
-                    )
+                    ) {
+                        Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                            if (bitmap != null) Image(bitmap!!.asImageBitmap(), contentDescription = name, modifier = Modifier.size(56.dp))
+                            else Box(Modifier.size(56.dp), contentAlignment = Alignment.Center) { Icon(Icons.Default.Language, null, modifier = Modifier.size(36.dp)) }
+                            Spacer(Modifier.width(12.dp))
+                            Text(name, Modifier.weight(1f))
+                        }
+                    }
                 }
-            }
+            }            }
         }
     }
 
