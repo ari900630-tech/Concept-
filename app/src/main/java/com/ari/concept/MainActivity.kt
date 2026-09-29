@@ -66,18 +66,7 @@ class MainActivity: ComponentActivity() {
             .map { AppItem(packageManager.getApplicationLabel(it).toString(),it.packageName,it) }
             .distinctBy { it.packageName }.sortedBy { it.label.lowercase() }
 
-    private fun openPlay(pkg:String){
-        val marketIntent=Intent(Intent.ACTION_VIEW,Uri.parse("market://details?id=$pkg")).apply {
-            setPackage("com.android.vending")
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        }
-        try {
-            startActivity(marketIntent)
-        } catch (_: Exception) {
-            val browserIntent=Intent(Intent.ACTION_VIEW,Uri.parse("https://play.google.com/store/apps/details?id=$pkg&hl=he&gl=IL"))
-            startActivity(browserIntent)
-        }
-    }
+    private fun openPlay(pkg:String){ startActivity(Intent(this@MainActivity,PlayGateActivity::class.java).putExtra("pkg",pkg)) }
 
     @Composable private fun Icon(app:AppItem){
         androidx.compose.ui.viewinterop.AndroidView(factory={ android.widget.ImageView(it).apply {
@@ -120,13 +109,12 @@ class MainActivity: ComponentActivity() {
         val labels=listOf("משחקים","אפליקציות","אתרים","חסימה","הגדרות")
         val icons=listOf(Icons.Default.SportsEsports,Icons.Default.Apps,Icons.Default.Language,Icons.Default.Block,Icons.Default.Settings)
         Scaffold(bottomBar={ NavigationBar{ labels.forEachIndexed{ i,t -> NavigationBarItem(selected=tab==i,onClick={tab=i},icon={Icon(icons[i],contentDescription=t)},label={Text(t)}) } } }){p->
-            Box(Modifier.fillMaxSize().padding(p).padding(12.dp)){ when(tab){0->Games();1->Apps();2->Sites();3->BlockApps();4->SettingsScreen()}; FloatingActionButton(onClick={startActivity(Intent(this@MainActivity,AIChatActivity::class.java))},modifier=Modifier.align(Alignment.TopEnd)){Icon(Icons.Default.Chat,contentDescription="צ׳אט AI")} }
+            Box(Modifier.fillMaxSize().padding(p)){ Column(Modifier.fillMaxSize().padding(12.dp)){ when(tab){0->Games();1->Apps();2->Sites();3->BlockApps();4->SettingsScreen()} }; FloatingActionButton(onClick={startActivity(Intent(this@MainActivity,AIChatActivity::class.java))},modifier=Modifier.align(Alignment.TopEnd)){Icon(Icons.Default.Chat,contentDescription="צ׳אט AI")} }
         }
     }
     @Composable fun Apps(){
         val apps=usefulApps.map{StoreItem(it.first,it.second)} + getSharedPreferences("concept_items",MODE_PRIVATE).getStringSet("apps",emptySet())!!.mapNotNull{val p=it.split("|",limit=2);if(p.size==2)StoreItem(p[0],p[1])else null}.distinctBy{it.packageName}
-        Text("אפליקציות",style=MaterialTheme.typography.headlineMedium,modifier=Modifier.fillMaxWidth(),textAlign=TextAlign.Right)
-        LazyColumn{items(apps,key={it.packageName}){a->PlayStoreCard(a)}}
+        Column(Modifier.fillMaxSize()){ Text("אפליקציות",style=MaterialTheme.typography.headlineMedium,modifier=Modifier.fillMaxWidth().padding(bottom=8.dp),textAlign=TextAlign.Right); LazyColumn(Modifier.weight(1f)){items(apps,key={it.packageName}){a->PlayStoreCard(a)}} }
     }
     @Composable fun Games(){
         val games=listOf(
@@ -136,31 +124,28 @@ class MainActivity: ComponentActivity() {
             StoreItem("Word Search","com.wordsearch.puzzle"),StoreItem("Minesweeper","com.microsoft.minesweeper"),
             StoreItem("Tetris","com.n3twork.tetris"),StoreItem("ChessKid","com.chesskid"),StoreItem("Nonogram.com","com.easybrain.nonogram"),StoreItem("Wordscapes","com.peoplefun.wordcross"),StoreItem("Jigsaw Puzzle","com.easybrain.jigsaw.puzzles"),StoreItem("Unblock Me","com.kiragames.unblockmefree"),StoreItem("Checkers","com.litegames.checkers.free"),StoreItem("Backgammon","com.litegames.backgammon.free"),StoreItem("Four in a Row","com.litegames.fourinarow.free"),StoreItem("Reversi","com.litegames.reversi.free")
         ) + getSharedPreferences("concept_items",MODE_PRIVATE).getStringSet("games",emptySet())!!.mapNotNull{val p=it.split("|",limit=2);if(p.size==2)StoreItem(p[0],p[1])else null}
-        Text("משחקים",style=MaterialTheme.typography.headlineMedium,modifier=Modifier.fillMaxWidth(),textAlign=TextAlign.Right)
-        LazyColumn{items(games,key={it.packageName}){g->PlayStoreCard(g)}}
+        Column(Modifier.fillMaxSize()){ Text("משחקים",style=MaterialTheme.typography.headlineMedium,modifier=Modifier.fillMaxWidth().padding(bottom=8.dp),textAlign=TextAlign.Right); LazyColumn(Modifier.weight(1f)){items(games,key={it.packageName}){g->PlayStoreCard(g)}} }
     }
     @Composable fun Sites(){
-        Text("אתרים",style=MaterialTheme.typography.headlineMedium,modifier=Modifier.fillMaxWidth(),textAlign=TextAlign.Right)
-        LazyColumn{items(sites){(name,url)-> Card(AppItem(name,"",applicationInfo),{
+        Column(Modifier.fillMaxSize()){ Text("אתרים",style=MaterialTheme.typography.headlineMedium,modifier=Modifier.fillMaxWidth().padding(bottom=8.dp),textAlign=TextAlign.Right); LazyColumn(Modifier.weight(1f)){items(sites){(name,url)-> Card(AppItem(name,"",applicationInfo),{
             startActivity(Intent(this@MainActivity,RestrictedWebActivity::class.java).putExtra("url",url).putExtra("exact",url))
-        })}}
+        })}} }
     }
     @Composable fun BlockApps(){
         val apps by produceState(initialValue=emptyList<AppItem>()){ value=installedApps() }
         val prefs=getSharedPreferences("blocked",MODE_PRIVATE)
         var blocked by remember{mutableStateOf(prefs.all.filterValues{it is Boolean && it}.keys.toSet())}
-        Text("חסימת אפליקציות",style=MaterialTheme.typography.headlineMedium,modifier=Modifier.fillMaxWidth(),textAlign=TextAlign.Right)
-        LazyColumn{items(apps,key={it.packageName}){a->
+        Column(Modifier.fillMaxSize()){ Text("חסימת אפליקציות",style=MaterialTheme.typography.headlineMedium,modifier=Modifier.fillMaxWidth().padding(bottom=8.dp),textAlign=TextAlign.Right); LazyColumn(Modifier.weight(1f)){items(apps,key={it.packageName}){a->
             val on=a.packageName in blocked
             Card(a,{ val n=!on; prefs.edit().putBoolean(a.packageName,n).apply(); blocked=if(n) blocked+a.packageName else blocked-a.packageName }){ Switch(checked=on,onCheckedChange=null) }
-        }}
+        }}} }
     }
     @Composable fun SettingsScreen(){
-        Text("הגדרות",style=MaterialTheme.typography.headlineMedium,modifier=Modifier.fillMaxWidth(),textAlign=TextAlign.Right); Spacer(Modifier.height(12.dp))
+        Column(Modifier.fillMaxSize()){ Text("הגדרות",style=MaterialTheme.typography.headlineMedium,modifier=Modifier.fillMaxWidth().padding(bottom=8.dp),textAlign=TextAlign.Right); Spacer(Modifier.height(12.dp))
         Button({startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))},Modifier.fillMaxWidth()){Text("נגישות")}
         Spacer(Modifier.height(8.dp)); Button({startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,Uri.parse("package:$packageName")))},Modifier.fillMaxWidth()){Text("הצגה מעל אפליקציות")}
         Spacer(Modifier.height(8.dp)); Button({startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))},Modifier.fillMaxWidth()){Text("נתוני שימוש")}
-        Spacer(Modifier.height(8.dp)); Button({startActivity(Intent(Settings.ACTION_SETTINGS))},Modifier.fillMaxWidth()){Text("הגדרות Android")}
+        Spacer(Modifier.height(8.dp)); Button({startActivity(Intent(Settings.ACTION_SETTINGS))},Modifier.fillMaxWidth()){Text("הגדרות Android")} }
     }
 }
 class RestrictedWebActivity:ComponentActivity(){
