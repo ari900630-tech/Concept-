@@ -53,7 +53,7 @@ class MainActivity: ComponentActivity() {
             modifier=Modifier.size(48.dp))
     }
 
-    @Composable private fun Card(app:AppItem,onClick:()->Unit,trailing:(@Composable()->Unit)?=null){
+    @Composable private fun Card(app:AppItem,onClick:()->Unit,trailing: (@Composable () -> Unit)? = null){
         Card(Modifier.fillMaxWidth().padding(vertical=4.dp).clickable{onClick()}){
             Row(Modifier.fillMaxWidth().padding(12.dp),verticalAlignment=Alignment.CenterVertically){
                 Icon(app); Spacer(Modifier.width(12.dp)); Text(app.label,Modifier.weight(1f))
