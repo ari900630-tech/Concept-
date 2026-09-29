@@ -16,6 +16,7 @@ class AppBlockAccessibilityService : AccessibilityService() {
     private var windowManager: WindowManager? = null
     private var gateView: View? = null
     private var uninstallView: View? = null
+    private var uninstallApproved = false
 
     override fun onServiceConnected() {
         super.onServiceConnected()
@@ -25,6 +26,7 @@ class AppBlockAccessibilityService : AccessibilityService() {
     override fun onAccessibilityEvent(event: android.view.accessibility.AccessibilityEvent?) {
         val pkg = event?.packageName?.toString() ?: return
         if (pkg != "com.android.vending") hidePlayGate()
+        if (pkg == "com.android.vending") {\n            val prefs = getSharedPreferences("play_gate", MODE_PRIVATE)\n            if (prefs.getBoolean("active", false)) showPlayGate()\n        }
 
         if (pkg == "com.android.vending") {
             val prefs = getSharedPreferences("play_gate", MODE_PRIVATE)
@@ -34,9 +36,9 @@ class AppBlockAccessibilityService : AccessibilityService() {
             }
         }
 
-        if (pkg == "com.android.settings" || pkg == "com.android.packageinstaller") {
+        if (pkg == "com.android.settings" || pkg == "com.android.packageinstaller" || pkg == "com.google.android.packageinstaller" || pkg == "com.google.android.permissioncontroller") {
             val root = windows.firstOrNull { it.root?.packageName?.toString() == pkg }?.root
-            if (root != null && containsUninstallRequest(root)) showUninstallPassword()
+            if (root != null && containsUninstallRequest(root)) {\n                if (!uninstallApproved) showUninstallPassword()\n            }
         }
 
         if (pkg != packageName && getSharedPreferences("blocked", MODE_PRIVATE).getBoolean(pkg, false)) {
