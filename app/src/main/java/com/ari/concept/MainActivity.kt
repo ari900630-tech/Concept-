@@ -139,7 +139,13 @@ class MainActivity: ComponentActivity() {
         Text("משחקים",style=MaterialTheme.typography.headlineMedium,modifier=Modifier.fillMaxWidth(),textAlign=TextAlign.Right)
         LazyColumn{items(games,key={it.packageName}){g->PlayStoreCard(g)}}
     }
-NaN    @Composable fun BlockApps(){
+    @Composable fun Sites(){
+        Text("אתרים",style=MaterialTheme.typography.headlineMedium,modifier=Modifier.fillMaxWidth(),textAlign=TextAlign.Right)
+        LazyColumn{items(sites){(name,url)-> Card(AppItem(name,"",applicationInfo),{
+            startActivity(Intent(this@MainActivity,RestrictedWebActivity::class.java).putExtra("url",url).putExtra("exact",url))
+        })}}
+    }
+    @Composable fun BlockApps(){
         val apps by produceState(initialValue=emptyList<AppItem>()){ value=installedApps() }
         val prefs=getSharedPreferences("blocked",MODE_PRIVATE)
         var blocked by remember{mutableStateOf(prefs.all.filterValues{it is Boolean && it}.keys.toSet())}
