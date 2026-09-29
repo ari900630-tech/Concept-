@@ -1,5 +1,7 @@
 package com.ari.concept
 
+import android.app.admin.DevicePolicyManager
+import android.content.ComponentName
 import android.content.Intent
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
@@ -433,6 +435,21 @@ class MainActivity : ComponentActivity() {
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("נגישות")
+            }
+
+            Spacer(Modifier.height(8.dp))
+
+            Button(
+                onClick = {
+                    val admin = ComponentName(this@MainActivity, ConceptDeviceAdminReceiver::class.java)
+                    startActivity(Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN).apply {
+                        putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, admin)
+                        putExtra(DevicePolicyManager.EXTRA_ADD_EXPLANATION, "נדרש אישור שליטה על הטלפון כדי להגן על האפליקציה מפני הסרה.")
+                    })
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("אישור שליטה על הטלפון")
             }
 
             Spacer(Modifier.height(8.dp))
