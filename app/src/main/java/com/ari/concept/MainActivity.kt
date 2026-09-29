@@ -171,9 +171,6 @@ class RestrictedWebActivity:ComponentActivity(){
                 val host=request.url.host; return host == null || host != allowedHost
             }}; loadUrl(exact)
         }
-        val root=android.widget.LinearLayout(this).apply{orientation=android.widget.LinearLayout.VERTICAL}; val bar=android.widget.LinearLayout(this)
-        bar.addView(android.widget.Button(this).apply{text="חזור";setOnClickListener{if(w.canGoBack())w.goBack()}},android.widget.LinearLayout.LayoutParams(0,56,1f))
-        bar.addView(android.widget.Button(this).apply{text="קדימה";setOnClickListener{if(w.canGoForward())w.goForward()}},android.widget.LinearLayout.LayoutParams(0,56,1f))
-        root.addView(bar,android.widget.LinearLayout.LayoutParams(-1,56)); root.addView(w,android.widget.LinearLayout.LayoutParams(-1,0,1f)); setContentView(root)
+        setContentView(w)
     }
 }
