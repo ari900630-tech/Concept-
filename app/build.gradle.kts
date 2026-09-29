@@ -1,4 +1,4 @@
-plugins { id("com.android.application"); id("org.jetbrains.kotlin.android") }
+plugins { id("com.android.application"); id("org.jetbrains.kotlin.android"); id("org.jetbrains.kotlin.plugin.compose") }
 
 android { namespace = "com.ari.concept"; compileSdk = 35
     defaultConfig { applicationId = "com.ari.concept"; minSdk = 26; targetSdk = 35; versionCode = 1; versionName = "1.0" }
