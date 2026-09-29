@@ -53,9 +53,14 @@ class PlayGateActivity : ComponentActivity() {
             ) {
                 Text(if (installed) "עדכן ב-Google Play" else "התקן ב-Google Play")
             }
-            Spacer(Modifier.height(18.dp))
+            Spacer(Modifier.height(12.dp))
             OutlinedButton(
-                onClick = { finish() },
+                onClick = {
+                    getSharedPreferences("play_gate", MODE_PRIVATE).edit()
+                        .putBoolean("active", false)
+                        .apply()
+                    finish()
+                },
                 Modifier.fillMaxWidth().height(52.dp)
             ) {
                 Text("חזור")
