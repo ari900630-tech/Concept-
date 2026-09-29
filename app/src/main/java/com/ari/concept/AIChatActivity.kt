@@ -24,93 +24,45 @@ data class AIMessage(val user:Boolean,val text:String)
 
 class AIChatActivity:ComponentActivity(){
     private val appCatalog = mapOf(
-        "וואטסאפ" to ("WhatsApp" to "com.whatsapp"),
-        "whatsapp" to ("WhatsApp" to "com.whatsapp"),
-        "וויז" to ("Waze" to "com.waze"),
-        "waze" to ("Waze" to "com.waze"),
-        "מפות" to ("Google Maps" to "com.google.android.apps.maps"),
-        "כרום" to ("Google Chrome" to "com.android.chrome"),
-        "chrome" to ("Google Chrome" to "com.android.chrome"),
-        "יוטיוב" to ("YouTube" to "com.google.android.youtube"),
-        "youtube" to ("YouTube" to "com.google.android.youtube"),
-        "ג׳ימייל" to ("Gmail" to "com.google.android.gm"),
-        "gmail" to ("Gmail" to "com.google.android.gm"),
-        "טלגרם" to ("Telegram" to "org.telegram.messenger"),
-        "telegram" to ("Telegram" to "org.telegram.messenger"),
-        "אינסטגרם" to ("Instagram" to "com.instagram.android"),
-        "instagram" to ("Instagram" to "com.instagram.android"),
-        "טיקטוק" to ("TikTok" to "com.zhiliaoapp.musically"),
-        "tiktok" to ("TikTok" to "com.zhiliaoapp.musically")
+        "וואטסאפ" to ("WhatsApp" to "com.whatsapp"), "whatsapp" to ("WhatsApp" to "com.whatsapp"),
+        "וויז" to ("Waze" to "com.waze"), "waze" to ("Waze" to "com.waze"),
+        "מפות" to ("Google Maps" to "com.google.android.apps.maps"), "maps" to ("Google Maps" to "com.google.android.apps.maps"),
+        "כרום" to ("Google Chrome" to "com.android.chrome"), "chrome" to ("Google Chrome" to "com.android.chrome"),
+        "ג׳ימייל" to ("Gmail" to "com.google.android.gm"), "gmail" to ("Gmail" to "com.google.android.gm"),
+        "דרייב" to ("Google Drive" to "com.google.android.apps.docs"), "drive" to ("Google Drive" to "com.google.android.apps.docs"),
+        "תרגום" to ("Google Translate" to "com.google.android.apps.translate"), "translate" to ("Google Translate" to "com.google.android.apps.translate"),
+        "לוח שנה" to ("Google Calendar" to "com.google.android.calendar"), "calendar" to ("Google Calendar" to "com.google.android.calendar"),
+        "שמור" to ("Google Keep" to "com.google.android.keep"), "keep" to ("Google Keep" to "com.google.android.keep"),
+        "אאוטלוק" to ("Outlook" to "com.microsoft.office.outlook"), "outlook" to ("Outlook" to "com.microsoft.office.outlook"),
+        "זום" to ("Zoom" to "us.zoom.videomeetings"), "zoom" to ("Zoom" to "us.zoom.videomeetings"),
+        "דרופבוקס" to ("Dropbox" to "com.dropbox.android"), "dropbox" to ("Dropbox" to "com.dropbox.android"),
+        "מוביט" to ("Moovit" to "com.tranzmate"), "moovit" to ("Moovit" to "com.tranzmate"),
+        "פייבוקס" to ("PayBox" to "com.payboxapp"), "paybox" to ("PayBox" to "com.payboxapp")
+    )
+
+    private val gameCatalog = mapOf(
+        "שחמט" to ("שחמט" to "com.chess"), "סודוקו" to ("סודוקו" to "com.easybrain.sudoku.android"),
+        "2048" to ("2048" to "com.androbaby.game2048"), "טטריס" to ("Tetris" to "com.n3twork.tetris"),
+        "tetris" to ("Tetris" to "com.n3twork.tetris"), "נונוגרם" to ("Nonogram.com" to "com.easybrain.nonogram"),
+        "nonogram" to ("Nonogram.com" to "com.easybrain.nonogram"), "פאזל" to ("Jigsaw Puzzle" to "com.easybrain.jigsaw.puzzles"),
+        "דמקה" to ("Checkers" to "com.litegames.checkers.free"), "שש בש" to ("Backgammon" to "com.litegames.backgammon.free"),
+        "רברסי" to ("Reversi" to "com.litegames.reversi.free")
     )
 
     private fun handleAddAppCommand(q:String):String? {
         val normalized=q.trim()
-        val prefix=Regex("""^(?:הוסף|תוסיף)\s+אפליקציה\s+(.+)$""", RegexOption.IGNORE_CASE)
-        val match=prefix.find(normalized) ?: return null
+        val appMatch=Regex("""^(?:הוסף|תוסיף)\s+אפליקציה\s+(.+)$""", RegexOption.IGNORE_CASE).find(normalized)
+        val gameMatch=Regex("""^(?:הוסף|תוסיף)\s+משחק\s+(.+)$""", RegexOption.IGNORE_CASE).find(normalized)
+        val match=appMatch ?: gameMatch ?: return null
         val requested=match.groupValues[1].trim().lowercase()
-        val item=appCatalog[requested] ?: appCatalog.entries.firstOrNull { requested.contains(it.key) || it.key.contains(requested) }?.value
-            ?: return "כדי להוסיף את האפליקציה, כתוב את שמה מתוך האפליקציות הנתמכות כרגע: WhatsApp, Waze, Chrome, YouTube, Gmail, Telegram, Instagram או TikTok."
+        val catalog=if (appMatch != null) appCatalog else gameCatalog
+        val item=catalog[requested] ?: catalog.entries.firstOrNull { requested.contains(it.key) || it.key.contains(requested) }?.value
+            ?: return "הפריט לא נמצא ברשימת הפריטים המאושרים להוספה."
         val prefs=getSharedPreferences("concept_items", MODE_PRIVATE)
-        val current=prefs.getStringSet("apps", emptySet()).orEmpty().toMutableSet()
+        val key=if (appMatch != null) "apps" else "games"
+        val current=prefs.getStringSet(key, emptySet()).orEmpty().toMutableSet()
         current.add(item.first + "|" + item.second)
-        prefs.edit().putStringSet("apps", current).apply()
-        return "הוספתי את " + item.first + " לרשימת האפליקציות בחנות. עכשיו היא תופיע שם ותיפתח דרך Google Play."
-    }
-    override fun onCreate(b:Bundle?){super.onCreate(b);setContent{AIChat()}}
-    private suspend fun askGroq(messages:List<AIMessage>):String=withContext(Dispatchers.IO){
-        val key=BuildConfig.GROQ_API_KEY
-        if(key.isBlank()) throw IllegalStateException("Missing AI configuration")
-        val body=JSONObject().apply{
-            put("model","openai/gpt-oss-120b")
-            put("messages",JSONArray().apply{
-                messages.forEach{m->put(JSONObject().apply{put("role",if(m.user)"user" else "assistant");put("content",m.text)})}
-            })
-            put("temperature",0.3)
-        }.toString()
-        val c=(URL("https://api.groq.com/openai/v1/chat/completions").openConnection() as HttpURLConnection).apply{
-            requestMethod="POST";connectTimeout=15000;readTimeout=30000
-            doOutput=true
-            setRequestProperty("Authorization","Bearer $key")
-            setRequestProperty("Content-Type","application/json")
-        }
-        c.outputStream.use{it.write(body.toByteArray(Charsets.UTF_8))}
-        val text=(if(c.responseCode in 200..299)c.inputStream else c.errorStream).bufferedReader().use{it.readText()}
-        if(c.responseCode !in 200..299) throw IllegalStateException("שרת AI החזיר ${c.responseCode}: ${text.take(300)}")
-        JSONObject(text).getJSONArray("choices").getJSONObject(0).getJSONObject("message").getString("content")
-    }
-    @Composable private fun AIChat(){
-        val scope=rememberCoroutineScope()
-        var input by remember{mutableStateOf("")}
-        var loading by remember{mutableStateOf(false)}
-        var messages by remember{mutableStateOf(listOf(AIMessage(false,"שלום. אפשר לשאול אותי שאלות או לבקש עזרה.")))}
-        Column(Modifier.fillMaxSize()){
-            Row(Modifier.fillMaxWidth().statusBarsPadding().padding(12.dp),verticalAlignment=Alignment.CenterVertically){
-                Button(onClick={finish()}){Text("חזור")}
-                Spacer(Modifier.width(8.dp))
-                Text("צ׳אט AI",Modifier.weight(1f),textAlign=TextAlign.Right,style=MaterialTheme.typography.headlineMedium)
-            }
-            HorizontalDivider()
-            LazyColumn(Modifier.weight(1f).fillMaxWidth().padding(horizontal=12.dp),contentPadding=PaddingValues(vertical=8.dp),verticalArrangement=Arrangement.spacedBy(6.dp)){
-                items(messages){m->Card(Modifier.fillMaxWidth()){Text(m.text,Modifier.fillMaxWidth().padding(12.dp),textAlign=TextAlign.Right)}}
-            }
-            Surface(tonalElevation=3.dp){
-                Row(Modifier.fillMaxWidth().navigationBarsPadding().imePadding().padding(8.dp),verticalAlignment=Alignment.Bottom){
-                    OutlinedTextField(value=input,onValueChange={input=it},modifier=Modifier.weight(1f),label={Text("כתוב בקשה")},maxLines=4)
-                    Spacer(Modifier.width(8.dp))
-                    Button(enabled=input.isNotBlank()&&!loading,onClick={
-                        val q=input.trim();input=""
-                        val sent=messages+AIMessage(true,q);messages=sent;loading=true
-                        scope.launch{
-                            try{
-                                val commandAnswer=handleAddAppCommand(q)
-                                val answer=commandAnswer ?: askGroq(sent)
-                                messages=sent+AIMessage(false,answer)
-                            } catch(e:Exception){messages=sent+AIMessage(false,e.message ?: "לא הצלחתי להתחבר לשרת ה-AI.")}
-                            finally{loading=false}
-                        }
-                    }){Text(if(loading)"..." else "שלח")}
-                }
-            }
-        }
-    }
-}
+        prefs.edit().putStringSet(key, current).apply()
+        val type=if (appMatch != null) "האפליקציות" else "המשחקים"
+        return "הוספתי את " + item.first + " לרשימת " + type + " המאושרת. הוא ייפתח דרך Google Play."
+    }}
