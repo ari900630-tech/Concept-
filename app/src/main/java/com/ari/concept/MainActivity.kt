@@ -240,16 +240,28 @@ class MainActivity : ComponentActivity() {
         val cacheKey = "play:$pkg"
         imageCache.get(cacheKey)?.let { return@withContext it }
         runCatching {
-            val page = URL("https://play.google.com/store/apps/details?id=$pkg&hl=he&gl=IL").openConnection() as HttpURLConnection
-            page.connectTimeout = 8000
-            page.readTimeout = 8000
-            page.setRequestProperty("User-Agent", "Mozilla/5.0")
-            page.setRequestProperty("Accept-Language", "he-IL,he;q=0.9,en;q=0.8")
-            val html = page.inputStream.bufferedReader().use { it.readText() }
+            val page = URL("https://play.google.com/store/apps/details?id=$pkg&hl=en&gl=US").openConnection() as HttpURLConnection
+            page.connectTimeout = 12000
+            page.readTimeout = 12000
+            page.instanceFollowRedirects = true
+            page.setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android 11) AppleWebKit/537.36 Chrome/154 Mobile Safari/537.36")
+            page.setRequestProperty("Accept", "text/html,application/xhtml+xml")
+            page.setRequestProperty("Accept-Language", "en-US,en;q=0.9")
+            val html = page.inputStream.bufferedReader(Charsets.UTF_8).use { it.readText() }
             page.disconnect()
-            val imageUrl = Regex("<meta[^>]+property=[\\\"']og:image[\\\"'][^>]+content=[\\\"']([^\\\"']+)[\\\"']>", RegexOption.IGNORE_CASE).find(html)?.groupValues?.get(1)
-                ?: Regex("<meta[^>]+content=[\\\"']([^\\\"']+)[\\\"'][^>]+property=[\\\"']og:image[\\\"']>", RegexOption.IGNORE_CASE).find(html)?.groupValues?.get(1)
-            val cleanedUrl = imageUrl?.replace("&amp;", "&") ?: return@withContext null
+
+            val imageUrl = sequenceOf(
+                Regex("""property\\s*=\\s*["']og:image["'][^>]*content\\s*=\\s*["']([^"']+)["']""", RegexOption.IGNORE_CASE),
+                Regex("""content\\s*=\\s*["']([^"']+)["'][^>]*property\\s*=\\s*["']og:image["']""", RegexOption.IGNORE_CASE),
+                Regex("""<meta[^>]+og:image[^>]+content=["']([^"']+)["']""", RegexOption.IGNORE_CASE)
+            ).mapNotNull { it.find(html)?.groupValues?.getOrNull(1) }.firstOrNull()
+
+            val cleanedUrl = imageUrl
+                ?.replace("&amp;", "&")
+                ?.replace("\\/", "/")
+                ?.replace("&quot;", "\"")
+                ?: return@withContext null
+
             loadBitmap(cleanedUrl, cacheKey)
         }.getOrNull()
     }
