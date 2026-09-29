@@ -110,6 +110,14 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         val password = getSharedPreferences("concept_security", MODE_PRIVATE)
             .getString("login_password", null)
+        val dpm = getSystemService(android.app.admin.DevicePolicyManager::class.java)
+        val admin = android.content.ComponentName(this, ConceptDeviceAdminReceiver::class.java)
+        if (dpm.isDeviceOwnerApp(packageName)) {
+            runCatching { dpm.setLockTaskPackages(admin, arrayOf(packageName)) }
+            runCatching { dpm.setLockTaskFeatures(admin, android.app.admin.DevicePolicyManager.LOCK_TASK_FEATURE_NONE) }
+            runCatching { startLockTask() }
+        }
+
         setContent {
             CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
                 var unlocked by rememberSaveable { mutableStateOf(password.isNullOrEmpty()) }
