@@ -1,6 +1,7 @@
 plugins { id("com.android.application"); id("org.jetbrains.kotlin.android"); id("org.jetbrains.kotlin.plugin.compose") }
 
 android {
+    buildFeatures { buildConfig = true }
     namespace = "com.ari.concept"
     compileSdk = 35
     defaultConfig {
@@ -9,6 +10,7 @@ android {
         targetSdk = 35
         versionCode = 1
         versionName = "1.0"
+        buildConfigField("String", "GROQ_API_KEY", "\"${System.getenv("GROQ_API_KEY") ?: ""}\"")
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
