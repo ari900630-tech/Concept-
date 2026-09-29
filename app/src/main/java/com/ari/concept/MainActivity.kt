@@ -113,7 +113,7 @@ class MainActivity: ComponentActivity() {
         val labels=listOf("משחקים","אפליקציות","אתרים","חסימה","הגדרות")
         val icons=listOf(Icons.Default.SportsEsports,Icons.Default.Apps,Icons.Default.Language,Icons.Default.Block,Icons.Default.Settings)
         Scaffold(bottomBar={ NavigationBar{ labels.forEachIndexed{ i,t -> NavigationBarItem(selected=tab==i,onClick={tab=i},icon={Icon(icons[i],contentDescription=t)},label={Text(t)}) } } }){p->
-            Box(Modifier.fillMaxSize().padding(p)){ Column(Modifier.fillMaxSize().padding(12.dp)){ when(tab){0->Games();1->Apps();2->Sites();3->BlockApps();4->SettingsScreen()} }; FloatingActionButton(onClick={startActivity(Intent(this@MainActivity,AIChatActivity::class.java))},modifier=Modifier.align(Alignment.TopEnd)){Icon(Icons.Default.Chat,contentDescription="צ׳אט AI")} }
+            Box(Modifier.fillMaxSize().padding(p)){ Column(Modifier.fillMaxSize().padding(12.dp)){ when(tab){0->Games();1->Apps();2->Sites();3->BlockApps();4->SettingsScreen()} }; FloatingActionButton(onClick={startActivity(Intent(this@MainActivity,AIChatActivity::class.java))},modifier=Modifier.align(Alignment.TopEnd)){Icon(Icons.Default.Chat,contentDescription="צ׳אט AI")} }) }
         }
     }
     @Composable fun Apps(){
