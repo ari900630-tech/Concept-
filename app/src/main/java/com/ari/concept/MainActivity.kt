@@ -61,7 +61,22 @@ class MainActivity : ComponentActivity() {
         "מאוחדת" to "https://www.meuhedet.co.il/",
         "לאומית" to "https://www.leumit.co.il/",
         "ביטוח לאומי" to "https://www.btl.gov.il/",
-        "דואר ישראל" to "https://israelpost.co.il/"
+        "דואר ישראל" to "https://israelpost.co.il/",
+        "Google" to "https://www.google.com/",
+        "Gmail" to "https://mail.google.com/",
+        "Google Drive" to "https://drive.google.com/",
+        "Google Maps" to "https://maps.google.com/",
+        "Google Translate" to "https://translate.google.com/",
+        "Wikipedia" to "https://he.wikipedia.org/",
+        "ממשל זמין" to "https://www.gov.il/",
+        "רשות המסים" to "https://www.gov.il/he/departments/israel_tax_authority/govil-landing-page",
+        "רכבת ישראל" to "https://www.rail.co.il/",
+        "אגד" to "https://www.egged.co.il/",
+        "רמי לוי" to "https://www.rami-levy.co.il/",
+        "שופרסל" to "https://www.shufersal.co.il/",
+        "ביטוח ישיר" to "https://www.555.co.il/",
+        "הראל" to "https://www.harel-group.co.il/",
+        "אלטשולר שחם" to "https://www.as-invest.co.il/"
     )
 
     private val usefulApps = listOf(
@@ -83,7 +98,11 @@ class MainActivity : ComponentActivity() {
         "Google Calendar" to "com.google.android.calendar",
         "Google Translate" to "com.google.android.apps.translate",
         "Google Keep" to "com.google.android.keep",
-        "Outlook" to "com.microsoft.office.outlook"
+        "Outlook" to "com.microsoft.office.outlook",
+        "Google Docs" to "com.google.android.apps.docs.editors.docs",
+        "Google Sheets" to "com.google.android.apps.docs.editors.sheets",
+        "Microsoft Word" to "com.microsoft.office.word",
+        "Microsoft Excel" to "com.microsoft.office.excel"
     )
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -223,19 +242,13 @@ class MainActivity : ComponentActivity() {
         var ready by remember { mutableStateOf(false) }
 
         LaunchedEffect(Unit) {
-            delay(900)
+            delay(1000)
             ready = true
         }
 
         if (!ready) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("Concept", style = MaterialTheme.typography.headlineLarge)
-                    Spacer(Modifier.height(16.dp))
-                    CircularProgressIndicator()
-                    Spacer(Modifier.height(12.dp))
-                    Text("טוען...")
-                }
+                CircularProgressIndicator()
             }
             return
         }
@@ -381,7 +394,7 @@ class MainActivity : ComponentActivity() {
                     }
                     androidx.compose.material3.Card(
                         modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp).clickable {
-                            startActivity(Intent(this@MainActivity, RestrictedWebActivity::class.java).putExtra("url", url).putExtra("exact", url))
+                            openSiteInChrome(url)
                         }
                     ) {
                         Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -393,6 +406,17 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             }            }
+        }
+    }
+
+    private fun openSiteInChrome(url: String) {
+        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
+            setPackage("com.android.chrome")
+        }
+        try {
+            startActivity(intent)
+        } catch (_: Exception) {
+            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
         }
     }
 
