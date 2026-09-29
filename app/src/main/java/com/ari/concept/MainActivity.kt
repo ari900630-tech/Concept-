@@ -135,17 +135,11 @@ class MainActivity: ComponentActivity() {
             StoreItem("Solitaire","com.mobirix.solitaire"),StoreItem("Block Puzzle","com.blockpuzzle.game"),
             StoreItem("Word Search","com.wordsearch.puzzle"),StoreItem("Minesweeper","com.microsoft.minesweeper"),
             StoreItem("Tetris","com.n3twork.tetris"),StoreItem("ChessKid","com.chesskid"),StoreItem("Nonogram.com","com.easybrain.nonogram"),StoreItem("Wordscapes","com.peoplefun.wordcross"),StoreItem("Jigsaw Puzzle","com.easybrain.jigsaw.puzzles"),StoreItem("Unblock Me","com.kiragames.unblockmefree"),StoreItem("Checkers","com.litegames.checkers.free"),StoreItem("Backgammon","com.litegames.backgammon.free"),StoreItem("Four in a Row","com.litegames.fourinarow.free"),StoreItem("Reversi","com.litegames.reversi.free")
-        )
+        ) + getSharedPreferences("concept_items",MODE_PRIVATE).getStringSet("games",emptySet())!!.mapNotNull{val p=it.split("|",limit=2);if(p.size==2)StoreItem(p[0],p[1])else null}
         Text("משחקים",style=MaterialTheme.typography.headlineMedium,modifier=Modifier.fillMaxWidth(),textAlign=TextAlign.Right)
         LazyColumn{items(games,key={it.packageName}){g->PlayStoreCard(g)}}
     }
-    @Composable fun Sites(){
-        Text("אתרים",style=MaterialTheme.typography.headlineMedium,modifier=Modifier.fillMaxWidth(),textAlign=TextAlign.Right)
-        LazyColumn{items(sites){(name,url)-> Card(AppItem(name,"",applicationInfo),{
-            startActivity(Intent(this@MainActivity,RestrictedWebActivity::class.java).putExtra("url",url).putExtra("exact",url))
-        })}}
-    }
-    @Composable fun BlockApps(){
+NaN    @Composable fun BlockApps(){
         val apps by produceState(initialValue=emptyList<AppItem>()){ value=installedApps() }
         val prefs=getSharedPreferences("blocked",MODE_PRIVATE)
         var blocked by remember{mutableStateOf(prefs.all.filterValues{it is Boolean && it}.keys.toSet())}
