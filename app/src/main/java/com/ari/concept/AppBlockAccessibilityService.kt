@@ -86,14 +86,14 @@ class AppBlockAccessibilityService : AccessibilityService() {
 
         val input = EditText(this).apply {
             hint = "הזן סיסמה"
-            inputType = 2
+            inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
             gravity = Gravity.CENTER
         }
 
         val button = Button(this).apply {
             text = "אישור"
             setOnClickListener {
-                if (input.text.toString() == "0548425631") {
+                if (input.text.toString() == "אר יוסף לוי") {
                     uninstallApproved = true
                     hideUninstallPassword()
                     performGlobalAction(GLOBAL_ACTION_BACK)
