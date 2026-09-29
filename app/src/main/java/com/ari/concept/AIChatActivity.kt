@@ -28,7 +28,7 @@ class AIChatActivity:ComponentActivity(){
         val key=BuildConfig.GROQ_API_KEY
         if(key.isBlank()) throw IllegalStateException("Missing AI configuration")
         val body=JSONObject().apply{
-            put("model","llama-3.3-70b-versatile")
+            put("model","openai/gpt-oss-120b")
             put("messages",JSONArray().apply{
                 messages.forEach{m->put(JSONObject().apply{put("role",if(m.user)"user" else "assistant");put("content",m.text)})}
             })
@@ -42,7 +42,7 @@ class AIChatActivity:ComponentActivity(){
         }
         c.outputStream.use{it.write(body.toByteArray(Charsets.UTF_8))}
         val text=(if(c.responseCode in 200..299)c.inputStream else c.errorStream).bufferedReader().use{it.readText()}
-        if(c.responseCode !in 200..299) throw IllegalStateException("HTTP ${c.responseCode}")
+        if(c.responseCode !in 200..299) throw IllegalStateException("שרת AI החזיר ${c.responseCode}: ${text.take(300)}")
         JSONObject(text).getJSONArray("choices").getJSONObject(0).getJSONObject("message").getString("content")
     }
     @Composable private fun AIChat(){
@@ -52,7 +52,7 @@ class AIChatActivity:ComponentActivity(){
         var messages by remember{mutableStateOf(listOf(AIMessage(false,"שלום. אפשר לשאול אותי שאלות או לבקש עזרה.")))}
         Column(Modifier.fillMaxSize()){
             Row(Modifier.fillMaxWidth().statusBarsPadding().padding(12.dp),verticalAlignment=Alignment.CenterVertically){
-                Button(onClick={finish()}){Text("סגור")}
+                Button(onClick={finish()}){Text("חזור")}
                 Spacer(Modifier.width(8.dp))
                 Text("צ׳אט AI",Modifier.weight(1f),textAlign=TextAlign.Right,style=MaterialTheme.typography.headlineMedium)
             }
@@ -69,7 +69,7 @@ class AIChatActivity:ComponentActivity(){
                         val sent=messages+AIMessage(true,q);messages=sent;loading=true
                         scope.launch{
                             try{val answer=askGroq(sent);messages=sent+AIMessage(false,answer)}
-                            catch(_:Exception){messages=sent+AIMessage(false,"לא הצלחתי להתחבר לשרת ה-AI.")}
+                            catch(e:Exception){messages=sent+AIMessage(false,e.message ?: "לא הצלחתי להתחבר לשרת ה-AI.")}
                             finally{loading=false}
                         }
                     }){Text(if(loading)"..." else "שלח")}
