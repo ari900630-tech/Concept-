@@ -108,12 +108,50 @@ class MainActivity: ComponentActivity() {
     @Composable fun App(){
         var ready by remember{mutableStateOf(false)}
         LaunchedEffect(Unit){ delay(900); ready=true }
-        if(!ready){ Box(Modifier.fillMaxSize(),contentAlignment=Alignment.Center){ Column(horizontalAlignment=Alignment.CenterHorizontally){ Text("Concept",style=MaterialTheme.typography.headlineLarge); Spacer(Modifier.height(16.dp)); CircularProgressIndicator(); Spacer(Modifier.height(12.dp)); Text("טוען...") } }; return }
+        if(!ready){
+            Box(Modifier.fillMaxSize(),contentAlignment=Alignment.Center){
+                Column(horizontalAlignment=Alignment.CenterHorizontally){
+                    Text("Concept",style=MaterialTheme.typography.headlineLarge)
+                    Spacer(Modifier.height(16.dp))
+                    CircularProgressIndicator()
+                    Spacer(Modifier.height(12.dp))
+                    Text("טוען...")
+                }
+            }
+            return
+        }
         var tab by remember{mutableIntStateOf(0)}
         val labels=listOf("משחקים","אפליקציות","אתרים","חסימה","הגדרות")
         val icons=listOf(Icons.Default.SportsEsports,Icons.Default.Apps,Icons.Default.Language,Icons.Default.Block,Icons.Default.Settings)
-        Scaffold(bottomBar={ NavigationBar{ labels.forEachIndexed{ i,t -> NavigationBarItem(selected=tab==i,onClick={tab=i},icon={Icon(icons[i],contentDescription=t)},label={Text(t)}) } } }){p->
-            Box(Modifier.fillMaxSize().padding(p)){ Column(Modifier.fillMaxSize().padding(12.dp)){ when(tab){0->Games();1->Apps();2->Sites();3->BlockApps();4->SettingsScreen()} }; FloatingActionButton(onClick={startActivity(Intent(this@MainActivity,AIChatActivity::class.java))},modifier=Modifier.align(Alignment.TopEnd)){Icon(Icons.Default.Chat,contentDescription="צ׳אט AI")} }) }
+        Scaffold(
+            bottomBar={
+                NavigationBar{
+                    labels.forEachIndexed{ i,t ->
+                        NavigationBarItem(
+                            selected=tab==i,
+                            onClick={tab=i},
+                            icon={Icon(icons[i],contentDescription=t)},
+                            label={Text(t)}
+                        )
+                    }
+                }
+            }
+        ){p->
+            Box(Modifier.fillMaxSize().padding(p)){
+                Column(Modifier.fillMaxSize().padding(12.dp)){
+                    when(tab){
+                        0->Games()
+                        1->Apps()
+                        2->Sites()
+                        3->BlockApps()
+                        4->SettingsScreen()
+                    }
+                }
+                FloatingActionButton(
+                    onClick={startActivity(Intent(this@MainActivity,AIChatActivity::class.java))},
+                    modifier=Modifier.align(Alignment.TopEnd)
+                ){Icon(Icons.Default.Chat,contentDescription="צ׳אט AI")}
+            }
         }
     }
     @Composable fun Apps(){
