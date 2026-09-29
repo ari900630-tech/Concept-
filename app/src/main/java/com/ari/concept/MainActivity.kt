@@ -27,8 +27,33 @@ data class AppItem(val label:String,val packageName:String,val info:ApplicationI
 
 class MainActivity: ComponentActivity() {
     private val sites=listOf(
-        "Google" to "https://www.google.com/",
-        "YouTube" to "https://www.youtube.com/"
+        "כיכר השבת" to "https://www.kikar.co.il/",
+        "JDN" to "https://www.jdn.co.il/",
+        "בחדרי חרדים" to "https://www.bhol.co.il/",
+        "המחדש" to "https://hm-news.co.il/",
+        "דרשו" to "https://www.dirshu.co.il/",
+        "בנק הפועלים" to "https://www.bankhapoalim.co.il/",
+        "בנק לאומי" to "https://www.leumi.co.il/",
+        "בנק דיסקונט" to "https://www.discountbank.co.il/",
+        "מכבי" to "https://www.maccabi4u.co.il/",
+        "כללית" to "https://www.clalit.co.il/",
+        "מאוחדת" to "https://www.meuhedet.co.il/",
+        "לאומית" to "https://www.leumit.co.il/",
+        "ביטוח לאומי" to "https://www.btl.gov.il/",
+        "דואר ישראל" to "https://israelpost.co.il/"
+    )
+
+    private val usefulApps=listOf(
+        "בנק הפועלים" to "com.ideomobile.il",
+        "בנק לאומי" to "com.leumi.leumiwallet",
+        "בנק דיסקונט" to "com.discountbank.mobile",
+        "מכבי" to "com.maccabi.health",
+        "כללית" to "com.clalit.clalit",
+        "מאוחדת" to "com.meuhedet",
+        "לאומית" to "com.leumit",
+        "WhatsApp" to "com.whatsapp",
+        "Waze" to "com.waze",
+        "Google Maps" to "com.google.android.apps.maps"
     )
 
     override fun onCreate(savedInstanceState:Bundle?){ super.onCreate(savedInstanceState); setContent{ App() } }
@@ -40,8 +65,7 @@ class MainActivity: ComponentActivity() {
             .distinctBy { it.packageName }
             .sortedBy { it.label.lowercase() }
 
-    private fun installedGames():List<AppItem> =
-        installedApps().filter { it.info.category == ApplicationInfo.CATEGORY_GAME }
+    private fun installedGames():List<AppItem> = emptyList()
 
     private fun openPlay(pkg:String){
         val url="https://play.google.com/store/apps/details?id=$pkg"
@@ -75,25 +99,33 @@ class MainActivity: ComponentActivity() {
     }
 
     @Composable fun Apps(){
-        val apps by produceState(initialValue=emptyList<AppItem>()){ value=installedApps() }
-        Text("אפליקציות",style=MaterialTheme.typography.headlineMedium)
-        Text("לחיצה פותחת את דף האפליקציה בלבד בתוך Google Play.")
+        val apps by produceState(initialValue=emptyList<AppItem>()){
+            value=usefulApps.mapNotNull { (label,pkg) ->
+                runCatching { packageManager.getApplicationInfo(pkg,0) }.getOrNull()?.let { AppItem(label,pkg,it) }
+            }
+        }
+        Text("אפליקציות שימושיות",style=MaterialTheme.typography.headlineMedium)
+        Text("שירותים שימושיים וחיוניים בלבד.")
         LazyColumn{items(apps,key={it.packageName}){a->Card(a,{openPlay(a.packageName)})}}
     }
 
     @Composable fun Games(){
-        val games by produceState(initialValue=emptyList<AppItem>()){ value=installedGames() }
+        val games by produceState(initialValue=emptyList<AppItem>()){
+            value=installedApps().filter { false }
+        }
         Text("משחקים",style=MaterialTheme.typography.headlineMedium)
-        Text("המשחקים נטענים בהדרגה והרשימה כוללת משחקים שמותקנים בטלפון.")
+        Text("אזור משחקים משפחתיים; ניתן להרחיב את הרשימה בהמשך.")
         LazyColumn{items(games,key={it.packageName}){a->Card(a,{openPlay(a.packageName)})}}
     }
 
     @Composable fun Sites(){
         Text("אתרים",style=MaterialTheme.typography.headlineMedium)
-        Text("רק האתרים שברשימה ניתנים לפתיחה.")
+        Text("אתרים שימושיים שנבחרו מראש.")
         LazyColumn{items(sites){(name,url)->
-            val fake=installedApps().firstOrNull()
-            if(fake!=null) Card(fake,{startActivity(Intent(this@MainActivity,RestrictedWebActivity::class.java).putExtra("url",url).putExtra("exact",url))}) else Card(AppItem(name,"",applicationInfo),{})
+            Card(AppItem(name,"",applicationInfo),{
+                startActivity(Intent(this@MainActivity,RestrictedWebActivity::class.java)
+                    .putExtra("url",url).putExtra("exact",url))
+            })
         }}
     }
 
