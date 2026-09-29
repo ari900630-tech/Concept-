@@ -409,8 +409,20 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        getSharedPreferences("chrome_lock", MODE_PRIVATE).edit().putBoolean("enabled", false).apply()
+    }
+
     private fun openSiteInChrome(url: String) {
-        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
+        val uri = Uri.parse(url)
+        getSharedPreferences("chrome_lock", MODE_PRIVATE).edit()
+            .putBoolean("enabled", true)
+            .putString("allowed_url", url)
+            .putString("allowed_host", uri.host ?: "")
+            .apply()
+
+        val intent = Intent(Intent.ACTION_VIEW, uri).apply {
             setPackage("com.android.chrome")
         }
         try {
