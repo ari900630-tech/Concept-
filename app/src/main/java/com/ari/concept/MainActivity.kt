@@ -20,6 +20,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Apps
+import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Settings
@@ -29,6 +30,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -52,9 +56,9 @@ class MainActivity: ComponentActivity() {
         "בנק הפועלים" to "com.ideomobile.il","בנק לאומי" to "com.leumi.leumiwallet",
         "בנק דיסקונט" to "com.discountbank.mobile","מכבי" to "com.maccabi.health",
         "כללית" to "com.clalit.clalit","מאוחדת" to "com.meuhedet","לאומית" to "com.leumit",
-        "WhatsApp" to "com.whatsapp","Waze" to "com.waze","Google Maps" to "com.google.android.apps.maps"
+        "WhatsApp" to "com.whatsapp","Waze" to "com.waze","Google Maps" to "com.google.android.apps.maps","Moovit" to "com.tranzmate","PayBox" to "com.payboxapp","Dropbox" to "com.dropbox.android","Zoom" to "us.zoom.videomeetings","Google Drive" to "com.google.android.apps.docs","Google Calendar" to "com.google.android.calendar","Google Translate" to "com.google.android.apps.translate","Google Keep" to "com.google.android.keep","Outlook" to "com.microsoft.office.outlook"
     )
-    override fun onCreate(savedInstanceState:Bundle?){ super.onCreate(savedInstanceState); setContent{ App() } }
+    override fun onCreate(savedInstanceState:Bundle?){ super.onCreate(savedInstanceState); setContent{ androidx.compose.runtime.CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl){ App() } } }
 
     private fun installedApps():List<AppItem> =
         packageManager.getInstalledApplications(PackageManager.GET_META_DATA)
@@ -116,12 +120,12 @@ class MainActivity: ComponentActivity() {
         val labels=listOf("משחקים","אפליקציות","אתרים","חסימה","הגדרות")
         val icons=listOf(Icons.Default.SportsEsports,Icons.Default.Apps,Icons.Default.Language,Icons.Default.Block,Icons.Default.Settings)
         Scaffold(bottomBar={ NavigationBar{ labels.forEachIndexed{ i,t -> NavigationBarItem(selected=tab==i,onClick={tab=i},icon={Icon(icons[i],contentDescription=t)},label={Text(t)}) } } }){p->
-            Column(Modifier.fillMaxSize().padding(p).padding(12.dp)){ when(tab){0->Games();1->Apps();2->Sites();3->BlockApps();4->SettingsScreen()} }
+            Box(Modifier.fillMaxSize().padding(p).padding(12.dp)){ when(tab){0->Games();1->Apps();2->Sites();3->BlockApps();4->SettingsScreen()}; FloatingActionButton(onClick={startActivity(Intent(this@MainActivity,AIChatActivity::class.java))},modifier=Modifier.align(Alignment.TopEnd)){Icon(Icons.Default.Chat,contentDescription="צ׳אט AI")} }
         }
     }
     @Composable fun Apps(){
-        val apps=usefulApps.map{StoreItem(it.first,it.second)}
-        Text("אפליקציות",style=MaterialTheme.typography.headlineMedium)
+        val apps=usefulApps.map{StoreItem(it.first,it.second)} + getSharedPreferences("concept_items",MODE_PRIVATE).getStringSet("apps",emptySet())!!.mapNotNull{val p=it.split("|",limit=2);if(p.size==2)StoreItem(p[0],p[1])else null}.distinctBy{it.packageName}
+        Text("אפליקציות",style=MaterialTheme.typography.headlineMedium,modifier=Modifier.fillMaxWidth(),textAlign=TextAlign.Right)
         LazyColumn{items(apps,key={it.packageName}){a->PlayStoreCard(a)}}
     }
     @Composable fun Games(){
@@ -130,13 +134,13 @@ class MainActivity: ComponentActivity() {
             StoreItem("Flow Free","com.bigduckgames.flow"),StoreItem("2048","com.androbaby.game2048"),
             StoreItem("Solitaire","com.mobirix.solitaire"),StoreItem("Block Puzzle","com.blockpuzzle.game"),
             StoreItem("Word Search","com.wordsearch.puzzle"),StoreItem("Minesweeper","com.microsoft.minesweeper"),
-            StoreItem("Tetris","com.n3twork.tetris"),StoreItem("ChessKid","com.chesskid")
+            StoreItem("Tetris","com.n3twork.tetris"),StoreItem("ChessKid","com.chesskid"),StoreItem("Nonogram.com","com.easybrain.nonogram"),StoreItem("Wordscapes","com.peoplefun.wordcross"),StoreItem("Jigsaw Puzzle","com.easybrain.jigsaw.puzzles"),StoreItem("Unblock Me","com.kiragames.unblockmefree"),StoreItem("Checkers","com.litegames.checkers.free"),StoreItem("Backgammon","com.litegames.backgammon.free"),StoreItem("Four in a Row","com.litegames.fourinarow.free"),StoreItem("Reversi","com.litegames.reversi.free")
         )
-        Text("משחקים",style=MaterialTheme.typography.headlineMedium)
+        Text("משחקים",style=MaterialTheme.typography.headlineMedium,modifier=Modifier.fillMaxWidth(),textAlign=TextAlign.Right)
         LazyColumn{items(games,key={it.packageName}){g->PlayStoreCard(g)}}
     }
     @Composable fun Sites(){
-        Text("אתרים",style=MaterialTheme.typography.headlineMedium)
+        Text("אתרים",style=MaterialTheme.typography.headlineMedium,modifier=Modifier.fillMaxWidth(),textAlign=TextAlign.Right)
         LazyColumn{items(sites){(name,url)-> Card(AppItem(name,"",applicationInfo),{
             startActivity(Intent(this@MainActivity,RestrictedWebActivity::class.java).putExtra("url",url).putExtra("exact",url))
         })}}
@@ -145,14 +149,14 @@ class MainActivity: ComponentActivity() {
         val apps by produceState(initialValue=emptyList<AppItem>()){ value=installedApps() }
         val prefs=getSharedPreferences("blocked",MODE_PRIVATE)
         var blocked by remember{mutableStateOf(prefs.all.filterValues{it is Boolean && it}.keys.toSet())}
-        Text("חסימת אפליקציות",style=MaterialTheme.typography.headlineMedium)
+        Text("חסימת אפליקציות",style=MaterialTheme.typography.headlineMedium,modifier=Modifier.fillMaxWidth(),textAlign=TextAlign.Right)
         LazyColumn{items(apps,key={it.packageName}){a->
             val on=a.packageName in blocked
             Card(a,{ val n=!on; prefs.edit().putBoolean(a.packageName,n).apply(); blocked=if(n) blocked+a.packageName else blocked-a.packageName }){ Switch(checked=on,onCheckedChange=null) }
         }}
     }
     @Composable fun SettingsScreen(){
-        Text("הגדרות",style=MaterialTheme.typography.headlineMedium); Spacer(Modifier.height(12.dp))
+        Text("הגדרות",style=MaterialTheme.typography.headlineMedium,modifier=Modifier.fillMaxWidth(),textAlign=TextAlign.Right); Spacer(Modifier.height(12.dp))
         Button({startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))},Modifier.fillMaxWidth()){Text("נגישות")}
         Spacer(Modifier.height(8.dp)); Button({startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,Uri.parse("package:$packageName")))},Modifier.fillMaxWidth()){Text("הצגה מעל אפליקציות")}
         Spacer(Modifier.height(8.dp)); Button({startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))},Modifier.fillMaxWidth()){Text("נתוני שימוש")}
