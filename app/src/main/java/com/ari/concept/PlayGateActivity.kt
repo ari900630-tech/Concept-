@@ -31,7 +31,7 @@ class PlayGateActivity : ComponentActivity() {
         if (pkg.isBlank()) return
         getSharedPreferences("play_gate", MODE_PRIVATE).edit()
             .putBoolean("active", true)
-            .putBoolean("install_requested", true)
+            .putBoolean("install_requested", false)
             .putString("target_pkg", pkg)
             .apply()
         val market = Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=$pkg")).setPackage("com.android.vending")
