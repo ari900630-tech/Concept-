@@ -20,6 +20,8 @@ class AppBlockAccessibilityService : AccessibilityService() {
     private var windowManager: WindowManager? = null
     private var uninstallView: View? = null
     private var playControlsView: View? = null
+    private var homeBlockView: View? = null
+    private var homePackage: String? = null
     private var uninstallApproved = false
     private var disableApproved = false
     private var lastPlayPackage = ""
@@ -28,12 +30,27 @@ class AppBlockAccessibilityService : AccessibilityService() {
     override fun onServiceConnected() {
         super.onServiceConnected()
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
+        homePackage = runCatching {
+            packageManager.resolveActivity(
+                Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME),
+                0
+            )?.activityInfo?.packageName
+        }.getOrNull()
     }
 
     override fun onAccessibilityEvent(event: android.view.accessibility.AccessibilityEvent?) {
         val pkg = event?.packageName?.toString() ?: return
         val root = event?.source
             ?: windows.firstOrNull { it.root?.packageName?.toString() == pkg }?.root
+
+        val siteLockActive = getSharedPreferences("chrome_lock", MODE_PRIVATE)
+            .getBoolean("enabled", false)
+        if (siteLockActive && isHomePackage(pkg)) {
+            showHomeBlock()
+            return
+        } else if (!isHomePackage(pkg)) {
+            hideHomeBlock()
+        }
 
         if (pkg == "com.android.settings" ||
             pkg == "com.android.packageinstaller" ||
@@ -194,6 +211,92 @@ class AppBlockAccessibilityService : AccessibilityService() {
     private fun hidePlayControls() {
         playControlsView?.let { runCatching { windowManager?.removeView(it) } }
         playControlsView = null
+    }
+
+    private fun isHomePackage(pkg: String): Boolean {
+        if (pkg == packageName || pkg == "com.android.chrome" || pkg == "com.android.vending") return false
+        val home = homePackage ?: runCatching {
+            packageManager.resolveActivity(
+                Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME),
+                0
+            )?.activityInfo?.packageName
+        }.getOrNull()
+        return home != null && pkg == home
+    }
+
+    private fun showHomeBlock() {
+        if (homeBlockView != null || windowManager == null) return
+        val root = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER
+            setPadding(40, 40, 40, 40)
+            setBackgroundColor(0xF5FFFFFF.toInt())
+            isClickable = true
+            isFocusable = true
+        }
+
+        val title = TextView(this).apply {
+            text = "חסום"
+            textSize = 30f
+            gravity = Gravity.CENTER
+        }
+        val message = TextView(this).apply {
+            text = "יציאה מהאתר החסום אינה זמינה"
+            textSize = 18f
+            gravity = Gravity.CENTER
+            setPadding(0, 12, 0, 24)
+        }
+        val backSite = Button(this).apply {
+            text = "חזור לאתר"
+            isAllCaps = false
+            setOnClickListener {
+                hideHomeBlock()
+                val url = getSharedPreferences("chrome_lock", MODE_PRIVATE)
+                    .getString("allowed_url", null)
+                if (!url.isNullOrBlank()) {
+                    startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
+                        setPackage("com.android.chrome")
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    })
+                }
+            }
+        }
+        val backApp = Button(this).apply {
+            text = "חזור לאפליקציה"
+            isAllCaps = false
+            setOnClickListener {
+                hideHomeBlock()
+                getSharedPreferences("chrome_lock", MODE_PRIVATE).edit()
+                    .putBoolean("enabled", false)
+                    .apply()
+                startActivity(Intent(this@AppBlockAccessibilityService, MainActivity::class.java).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                })
+            }
+        }
+
+        root.addView(title, LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
+        root.addView(message, LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
+        root.addView(backSite, LinearLayout.LayoutParams.MATCH_PARENT, 56.dp())
+        root.addView(backApp, LinearLayout.LayoutParams.MATCH_PARENT, 56.dp())
+
+        val params = WindowManager.LayoutParams(
+            WindowManager.LayoutParams.MATCH_PARENT,
+            WindowManager.LayoutParams.MATCH_PARENT,
+            WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
+            WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
+            PixelFormat.TRANSLUCENT
+        )
+        params.gravity = Gravity.CENTER
+        runCatching {
+            windowManager?.addView(root, params)
+            homeBlockView = root
+        }
+    }
+
+    private fun hideHomeBlock() {
+        homeBlockView?.let { runCatching { windowManager?.removeView(it) } }
+        homeBlockView = null
     }
 
     private fun enforceChromeLock(root: AccessibilityNodeInfo?) {
@@ -381,12 +484,14 @@ class AppBlockAccessibilityService : AccessibilityService() {
     override fun onInterrupt() {
         hideUninstallPassword()
         hidePlayControls()
+        hideHomeBlock()
         clearChromeGuards()
     }
 
     override fun onDestroy() {
         hideUninstallPassword()
         hidePlayControls()
+        hideHomeBlock()
         clearChromeGuards()
         super.onDestroy()
     }
