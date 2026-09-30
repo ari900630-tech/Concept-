@@ -389,8 +389,22 @@ class MainActivity : ComponentActivity() {
                 modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
                 textAlign = TextAlign.Right
             )
-            LazyColumn(Modifier.weight(1f)) {
-                items(apps, key = { it.packageName }) { app ->
+            if (loading) {
+                var dots by remember { mutableIntStateOf(0) }
+                LaunchedEffect(Unit) {
+                    while (loading) {
+                        delay(450)
+                        dots = (dots + 1) % 4
+                    }
+                }
+                Text(
+                    "טוען אפליקציות" + ".".repeat(dots),
+                    modifier = Modifier.fillMaxWidth().padding(24.dp),
+                    textAlign = TextAlign.Center
+                )
+            } else {
+                LazyColumn(Modifier.weight(1f)) {
+                    items(apps, key = { it.packageName }) { app ->
                     PlayStoreCard(app)
                 }
             }
@@ -503,8 +517,16 @@ class MainActivity : ComponentActivity() {
 
     @Composable
     fun BlockApps() {
-        val apps by produceState(initialValue = emptyList<AppItem>()) {
-            value = installedApps()
+        var loading by remember { mutableStateOf(true) }
+        var apps by remember { mutableStateOf<List<AppItem>>(emptyList()) }
+
+        LaunchedEffect(Unit) {
+            withContext(Dispatchers.IO) {
+                installedApps()
+            }.also {
+                apps = it
+                loading = false
+            }
         }
 
         val prefs = getSharedPreferences("blocked", MODE_PRIVATE)
@@ -537,6 +559,7 @@ class MainActivity : ComponentActivity() {
                         }
                     ) {
                         Switch(checked = enabled, onCheckedChange = null)
+                    }
                     }
                 }
             }
