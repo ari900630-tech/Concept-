@@ -550,11 +550,10 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             }
-        }
     }
 
     @Composable
-    fun SettingsScreen() {
+    fun SettingsScreen {
         Column(Modifier.fillMaxSize()) {
             Text(
                 "הגדרות",
