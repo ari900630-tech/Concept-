@@ -18,6 +18,7 @@ class AppBlockAccessibilityService : AccessibilityService() {
     private var windowManager: WindowManager? = null
     private var uninstallView: View? = null
     private var uninstallApproved = false
+    private var disableApproved = false
     private val chromeGuards = mutableListOf<View>()
 
     override fun onServiceConnected() {
@@ -35,8 +36,11 @@ class AppBlockAccessibilityService : AccessibilityService() {
             pkg == "com.google.android.packageinstaller" ||
             pkg == "com.google.android.permissioncontroller"
         ) {
-            if (root != null && containsUninstallRequest(root) && !uninstallApproved) {
-                showUninstallPassword()
+            if (root != null && !uninstallApproved && containsUninstallRequest(root)) {
+                showUninstallPassword("הסרת האפליקציה חסומה")
+            }
+            if (root != null && !disableApproved && containsDisableRequest(root)) {
+                showUninstallPassword("השבתת ההגנה חסומה")
             }
         }
 
@@ -154,6 +158,12 @@ class AppBlockAccessibilityService : AccessibilityService() {
         chromeGuards.clear()
     }
 
+    private fun containsDisableRequest(root: AccessibilityNodeInfo): Boolean {
+        val text = rootText(root).lowercase()
+        return ("השבת" in text || "ביטול הפעלה" in text || "disable" in text || "deactivate" in text) &&
+            ("concept" in text || "מנהל מכשיר" in text || "device admin" in text || "device administrator" in text)
+    }
+
     private fun containsUninstallRequest(root: AccessibilityNodeInfo): Boolean {
         val text = rootText(root).lowercase()
         val appLabel = applicationInfo.loadLabel(packageManager).toString().lowercase()
@@ -175,7 +185,7 @@ class AppBlockAccessibilityService : AccessibilityService() {
         return out.toString()
     }
 
-    private fun showUninstallPassword() {
+    private fun showUninstallPassword(titleText: String) {
         if (uninstallView != null || windowManager == null) return
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -186,7 +196,7 @@ class AppBlockAccessibilityService : AccessibilityService() {
             isFocusable = true
         }
         val title = TextView(this).apply {
-            text = "הסרת האפליקציה חסומה"
+            text = titleText
             textSize = 22f
             gravity = Gravity.CENTER
         }
@@ -198,8 +208,11 @@ class AppBlockAccessibilityService : AccessibilityService() {
         val button = Button(this).apply {
             text = "אישור"
             setOnClickListener {
-                if (input.text.toString() == "אר יוסף לוי") {
+                val savedPassword = getSharedPreferences("concept_security", MODE_PRIVATE)
+                    .getString("login_password", "") ?: ""
+                if (savedPassword.isNotBlank() && input.text.toString() == savedPassword) {
                     uninstallApproved = true
+                    disableApproved = true
                     hideUninstallPassword()
                     performGlobalAction(GLOBAL_ACTION_BACK)
                 } else {
