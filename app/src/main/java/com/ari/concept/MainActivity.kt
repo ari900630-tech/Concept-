@@ -596,14 +596,24 @@ class MainActivity : ComponentActivity() {
         }
 
         Column(Modifier.fillMaxSize()) {
-            Text(
-                "חסימת אפליקציות",
-                style = MaterialTheme.typography.headlineMedium,
-                modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
-                textAlign = TextAlign.Right
-            )
+            Box(Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
+                Text(
+                    "חסימת אפליקציות",
+                    style = MaterialTheme.typography.headlineMedium,
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Right
+                )
+                IconButton(
+                    onClick = { },
+                    modifier = Modifier.align(Alignment.TopStart)
+                ) {
+                    Icon(Icons.Default.MoreVert, contentDescription = "אפשרויות")
+                }
+            }
             if (loading) {
-                LoadingDots()
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    LoadingDots()
+                }
             } else {
                 LazyColumn(Modifier.weight(1f)) {
                     items(apps, key = { it.packageName }) { app ->
@@ -648,6 +658,39 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private fun accessibilityEnabled(): Boolean {
+        val value = Settings.Secure.getString(contentResolver, Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES).orEmpty()
+        return value.split(':').any { it.contains(packageName, ignoreCase = true) }
+    }
+
+    private fun overlayEnabled(): Boolean = Settings.canDrawOverlays(this)
+
+    private fun usageAccessEnabled(): Boolean {
+        val appOps = getSystemService(android.app.AppOpsManager::class.java)
+        return appOps.checkOpNoThrow(
+            android.app.AppOpsManager.OPSTR_GET_USAGE_STATS,
+            applicationInfo.uid,
+            packageName
+        ) == android.app.AppOpsManager.MODE_ALLOWED
+    }
+
+    private fun deviceAdminEnabled(): Boolean {
+        val dpm = getSystemService(DevicePolicyManager::class.java)
+        val admin = ComponentName(this, ConceptDeviceAdminReceiver::class.java)
+        return dpm.isAdminActive(admin) || dpm.isDeviceOwnerApp(packageName)
+    }
+
+    @Composable
+    private fun PermissionButton(label: String, enabled: Boolean, onClick: () -> Unit) {
+        Button(
+            onClick = onClick,
+            enabled = !enabled,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(if (enabled) "✓ $label" else label)
+        }
+    }
+
     @Composable
     fun SettingsScreen() {
         Column(Modifier.fillMaxSize()) {
@@ -659,51 +702,40 @@ class MainActivity : ComponentActivity() {
             )
             Spacer(Modifier.height(12.dp))
 
-            Button(
-                onClick = { startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("נגישות")
+            val accessibilityOk = accessibilityEnabled()
+            val adminOk = deviceAdminEnabled()
+            val overlayOk = overlayEnabled()
+            val usageOk = usageAccessEnabled()
+
+            PermissionButton("נגישות", accessibilityOk) {
+                startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
             }
 
             Spacer(Modifier.height(8.dp))
 
-            Button(
-                onClick = {
-                    val admin = ComponentName(this@MainActivity, ConceptDeviceAdminReceiver::class.java)
-                    startActivity(Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN).apply {
-                        putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, admin)
-                        putExtra(DevicePolicyManager.EXTRA_ADD_EXPLANATION, "נדרש אישור שליטה על הטלפון כדי להגן על האפליקציה מפני הסרה.")
-                    })
-                },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("אישור שליטה על הטלפון")
+            PermissionButton("אישור שליטה על הטלפון", adminOk) {
+                val admin = ComponentName(this@MainActivity, ConceptDeviceAdminReceiver::class.java)
+                startActivity(Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN).apply {
+                    putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, admin)
+                    putExtra(DevicePolicyManager.EXTRA_ADD_EXPLANATION, "נדרש אישור שליטה על הטלפון כדי להגן על האפליקציה מפני הסרה.")
+                })
             }
 
             Spacer(Modifier.height(8.dp))
 
-            Button(
-                onClick = {
-                    startActivity(
-                        Intent(
-                            Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                            Uri.parse("package:$packageName")
-                        )
+            PermissionButton("הצגה מעל אפליקציות", overlayOk) {
+                startActivity(
+                    Intent(
+                        Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                        Uri.parse("package:$packageName")
                     )
-                },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("הצגה מעל אפליקציות")
+                )
             }
 
             Spacer(Modifier.height(8.dp))
 
-            Button(
-                onClick = { startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)) },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("נתוני שימוש")
+            PermissionButton("נתוני שימוש", usageOk) {
+                startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
             }
 
             Spacer(Modifier.height(8.dp))
