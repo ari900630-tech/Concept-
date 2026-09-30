@@ -104,7 +104,33 @@ class MainActivity : ComponentActivity() {
         "Google Docs" to "com.google.android.apps.docs.editors.docs",
         "Google Sheets" to "com.google.android.apps.docs.editors.sheets",
         "Microsoft Word" to "com.microsoft.office.word",
-        "Microsoft Excel" to "com.microsoft.office.excel"
+        "Microsoft Excel" to "com.microsoft.office.excel",
+        "Microsoft PowerPoint" to "com.microsoft.office.powerpoint",
+        "Telegram" to "org.telegram.messenger",
+        "Signal" to "org.thoughtcrime.securesms",
+        "Skype" to "com.skype.raider",
+        "Microsoft Teams" to "com.microsoft.teams",
+        "OneDrive" to "com.microsoft.skydrive",
+        "Adobe Acrobat Reader" to "com.adobe.reader",
+        "Canva" to "com.canva.editor",
+        "Pinterest" to "com.pinterest",
+        "Shazam" to "com.shazam.android",
+        "Google Photos" to "com.google.android.apps.photos",
+        "Google Chrome" to "com.android.chrome",
+        "Firefox" to "org.mozilla.firefox",
+        "Google Authenticator" to "com.google.android.apps.authenticator2",
+        "Microsoft Authenticator" to "com.azure.authenticator",
+        "Google Wallet" to "com.google.android.apps.walletnfcrel",
+        "Amazon Shopping" to "com.amazon.mShop.android.shopping",
+        "eBay" to "com.ebay.mobile",
+        "Duolingo" to "com.duolingo",
+        "Khan Academy" to "org.khanacademy.android",
+        "Google Classroom" to "com.google.android.apps.classroom",
+        "Notion" to "notion.id",
+        "Evernote" to "com.evernote",
+        "Trello" to "com.trello",
+        "VLC" to "org.videolan.vlc",
+        "Spotify" to "com.spotify.music"
     )
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -254,7 +280,8 @@ class MainActivity : ComponentActivity() {
             val imageUrl = sequenceOf(
                 Regex("""property\\s*=\\s*["']og:image["'][^>]*content\\s*=\\s*["']([^"']+)["']""", RegexOption.IGNORE_CASE),
                 Regex("""content\\s*=\\s*["']([^"']+)["'][^>]*property\\s*=\\s*["']og:image["']""", RegexOption.IGNORE_CASE),
-                Regex("""<meta[^>]+og:image[^>]+content=["']([^"']+)["']""", RegexOption.IGNORE_CASE)
+                Regex("""<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']""", RegexOption.IGNORE_CASE),
+                Regex("""<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']""", RegexOption.IGNORE_CASE)
             ).mapNotNull { it.find(html)?.groupValues?.getOrNull(1) }.firstOrNull()
 
             val cleanedUrl = imageUrl
@@ -417,7 +444,24 @@ class MainActivity : ComponentActivity() {
             StoreItem("Checkers", "com.litegames.checkers.free"),
             StoreItem("Backgammon", "com.litegames.backgammon.free"),
             StoreItem("Four in a Row", "com.litegames.fourinarow"),
-            StoreItem("Reversi", "com.litegames.reversi.free")
+            StoreItem("Reversi", "com.litegames.reversi.free"),
+            StoreItem("Word Cookies", "com.bitmango.go.wordcookies"),
+            StoreItem("Word Connect", "com.wordgames.wordconnect"),
+            StoreItem("Mahjong", "com.bitmango.go.mahjong"),
+            StoreItem("Dominoes", "com.iosdomino.domino"),
+            StoreItem("Ludo King", "com.ludo.king"),
+            StoreItem("Carrom Pool", "com.miniclip.carrom"),
+            StoreItem("8 Ball Pool", "com.miniclip.eightballpool"),
+            StoreItem("Hill Climb Racing", "com.fingersoft.hillclimb"),
+            StoreItem("Subway Surfers", "com.kiloo.subwaysurf"),
+            StoreItem("Temple Run 2", "com.imangi.templerun2"),
+            StoreItem("Angry Birds 2", "com.rovio.baba"),
+            StoreItem("Cut the Rope", "com.zeptolab.ctr.ads"),
+            StoreItem("Fruit Ninja", "com.halfbrick.fruitninjafree"),
+            StoreItem("Jetpack Joyride", "com.halfbrick.jetpackjoyride"),
+            StoreItem("Geometry Dash Lite", "com.robtopx.geometryjumplite"),
+            StoreItem("Crossy Road", "com.yodo1.crossyroad"),
+            StoreItem("Stack", "com.ketchapp.stack")
         )
 
         val saved = getSharedPreferences("concept_items", MODE_PRIVATE)
