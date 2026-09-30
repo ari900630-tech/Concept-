@@ -311,7 +311,7 @@ class MainActivity : ComponentActivity() {
         var ready by remember { mutableStateOf(false) }
 
         LaunchedEffect(Unit) {
-            delay(1000)
+            delay(200)
             ready = true
         }
 
