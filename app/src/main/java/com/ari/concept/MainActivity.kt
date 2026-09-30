@@ -35,6 +35,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -336,6 +337,43 @@ class MainActivity : ComponentActivity() {
 
     @Composable
     fun App() {
+        var ready by remember { mutableStateOf(false) }
+
+        LaunchedEffect(Unit) {
+            delay(550)
+            ready = true
+        }
+
+        if (!ready) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Box(
+                        modifier = Modifier.size(96.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Image(
+                            painter = painterResource(id = R.drawable.ic_launcher),
+                            contentDescription = "Concept",
+                            modifier = Modifier.size(64.dp)
+                        )
+                        CircularProgressIndicator(
+                            modifier = Modifier
+                                .size(92.dp)
+                                .align(Alignment.TopCenter),
+                            strokeWidth = 3.dp
+                        )
+                    }
+                }
+            }
+            return
+        }
+
         var tab by remember { mutableIntStateOf(0) }
         val labels = listOf("משחקים", "אפליקציות", "אתרים", "חסימה", "הגדרות")
         val icons = listOf(
