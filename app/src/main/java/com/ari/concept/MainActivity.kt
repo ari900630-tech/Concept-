@@ -678,7 +678,7 @@ class MainActivity : ComponentActivity() {
             Button(
                 onClick = {
                     if (password.isBlank()) {
-                        startActivity(Intent(Settings.ACTION_DEVICE_ADMIN_SETTINGS))
+                        startActivity(Intent("android.settings.SECURITY_SETTINGS"))
                     } else {
                         disablePassword = ""
                         disablePasswordError = false
