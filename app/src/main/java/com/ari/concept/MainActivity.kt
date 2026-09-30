@@ -145,7 +145,7 @@ class MainActivity : ComponentActivity() {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Text("Concept", style = MaterialTheme.typography.headlineLarge)
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Start, verticalAlignment = Alignment.CenterVertically) { Text("👑", fontSize = 30.sp); Spacer(Modifier.width(8.dp)); Text("Concept", style = MaterialTheme.typography.headlineLarge) }
             Spacer(Modifier.height(12.dp))
             Text("האפליקציה מוגנת בסיסמה", style = MaterialTheme.typography.titleMedium)
             Spacer(Modifier.height(20.dp))
@@ -312,7 +312,6 @@ class MainActivity : ComponentActivity() {
         var ready by remember { mutableStateOf(false) }
 
         LaunchedEffect(Unit) {
-            delay(200)
             ready = true
         }
 
@@ -530,26 +529,49 @@ class MainActivity : ComponentActivity() {
                 modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
                 textAlign = TextAlign.Right
             )
-            LazyColumn(Modifier.weight(1f)) {
-                items(apps, key = { it.packageName }) { app ->
-                    val enabled = app.packageName in blocked
-                    AppCard(
-                        app,
-                        onClick = {
-                            val newValue = !enabled
-                            prefs.edit().putBoolean(app.packageName, newValue).apply()
-                            blocked = if (newValue) {
-                                blocked + app.packageName
-                            } else {
-                                blocked - app.packageName
+            if (loading) {
+                LoadingDots()
+            } else {
+                LazyColumn(Modifier.weight(1f)) {
+                    items(apps, key = { it.packageName }) { app ->
+                        val enabled = app.packageName in blocked
+                        AppCard(
+                            app,
+                            onClick = {
+                                val newValue = !enabled
+                                prefs.edit().putBoolean(app.packageName, newValue).apply()
+                                blocked = if (newValue) blocked + app.packageName else blocked - app.packageName
                             }
+                        ) {
+                            Switch(checked = enabled, onCheckedChange = null)
                         }
-                    ) {
-                        Switch(checked = enabled, onCheckedChange = null)
-                    }
                     }
                 }
             }
+    }
+
+    @Composable
+    private fun LoadingDots() {
+        var active by remember { mutableIntStateOf(0) }
+        LaunchedEffect(Unit) {
+            while (true) {
+                delay(350)
+                active = (active + 1) % 3
+            }
+        }
+        Row(Modifier.fillMaxWidth().padding(24.dp), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
+            Text("טוען אפליקציות", style = MaterialTheme.typography.titleMedium)
+            Spacer(Modifier.width(8.dp))
+            repeat(3) { i ->
+                Box(Modifier.padding(horizontal = 3.dp).size(10.dp), contentAlignment = Alignment.Center) {
+                    Surface(
+                        shape = androidx.compose.foundation.shape.CircleShape,
+                        color = if (i == active) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.outline,
+                        modifier = Modifier.size(9.dp)
+                    ) {}
+                }
+            }
+        }
     }
 
     @Composable
