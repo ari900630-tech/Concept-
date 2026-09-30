@@ -613,6 +613,9 @@ class MainActivity : ComponentActivity() {
             var newPassword by remember { mutableStateOf("") }
             var confirmPassword by remember { mutableStateOf("") }
             var passwordError by remember { mutableStateOf("") }
+            var showDisableDialog by remember { mutableStateOf(false) }
+            var disablePassword by remember { mutableStateOf("") }
+            var disablePasswordError by remember { mutableStateOf(false) }
 
             Button(
                 onClick = {
@@ -668,6 +671,60 @@ class MainActivity : ComponentActivity() {
                     },
                     dismissButton = {
                         TextButton(onClick = { showPasswordDialog = false }) { Text("ביטול") }
+                    }
+                )
+            }
+
+            Button(
+                onClick = {
+                    if (password.isBlank()) {
+                        startActivity(Intent(Settings.ACTION_DEVICE_ADMIN_SETTINGS))
+                    } else {
+                        disablePassword = ""
+                        disablePasswordError = false
+                        showDisableDialog = true
+                    }
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("השבתת הגנה")
+            }
+
+            if (showDisableDialog) {
+                AlertDialog(
+                    onDismissRequest = { showDisableDialog = false },
+                    title = { Text("נדרשת סיסמה") },
+                    text = {
+                        Column {
+                            Text("יש להזין את הסיסמה לפני השבתת ההגנה.")
+                            Spacer(Modifier.height(10.dp))
+                            OutlinedTextField(
+                                value = disablePassword,
+                                onValueChange = {
+                                    disablePassword = it
+                                    disablePasswordError = false
+                                },
+                                label = { Text("סיסמה") },
+                                singleLine = true,
+                                isError = disablePasswordError
+                            )
+                            if (disablePasswordError) {
+                                Text("סיסמה שגויה", color = MaterialTheme.colorScheme.error)
+                            }
+                        }
+                    },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            if (disablePassword == password) {
+                                showDisableDialog = false
+                                startActivity(Intent(Settings.ACTION_DEVICE_ADMIN_SETTINGS))
+                            } else {
+                                disablePasswordError = true
+                            }
+                        }) { Text("אישור") }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showDisableDialog = false }) { Text("ביטול") }
                     }
                 )
             }
