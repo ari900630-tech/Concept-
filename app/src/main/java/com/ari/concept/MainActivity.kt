@@ -336,19 +336,6 @@ class MainActivity : ComponentActivity() {
 
     @Composable
     fun App() {
-        var ready by remember { mutableStateOf(false) }
-
-        LaunchedEffect(Unit) {
-            ready = true
-        }
-
-        if (!ready) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
-            }
-            return
-        }
-
         var tab by remember { mutableIntStateOf(0) }
         val labels = listOf("משחקים", "אפליקציות", "אתרים", "חסימה", "הגדרות")
         val icons = listOf(
