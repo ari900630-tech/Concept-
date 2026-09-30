@@ -26,6 +26,7 @@ import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.Language
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SportsEsports
 import androidx.compose.material3.*
@@ -250,6 +251,9 @@ class MainActivity : ComponentActivity() {
 
     private val imageCache = LruCache<String, Bitmap>(80)
 
+    private fun installedDrawable(pkg: String): android.graphics.drawable.Drawable? =
+        runCatching { packageManager.getApplicationInfo(pkg, PackageManager.GET_META_DATA).loadIcon(packageManager) }.getOrNull()
+
     private suspend fun loadBitmap(url: String, cacheKey: String): Bitmap? = withContext(Dispatchers.IO) {
         imageCache.get(cacheKey)?.let { return@withContext it }
         runCatching {
@@ -301,7 +305,8 @@ class MainActivity : ComponentActivity() {
     }
     @Composable
     private fun PlayStoreCard(item: StoreItem) {
-        var bitmap by remember(item.packageName) { mutableStateOf(imageCache.get("play:${item.packageName}")) }
+        var bitmap by remember(item.packageName) { mutableStateOf(imageCache.get("play:" + item.packageName)) }
+        val localIcon = remember(item.packageName) { installedDrawable(item.packageName) }
         LaunchedEffect(item.packageName) {
             val loaded = loadPlayIcon(item.packageName)
             if (loaded != null) bitmap = loaded
@@ -317,14 +322,22 @@ class MainActivity : ComponentActivity() {
                 Modifier.fillMaxWidth().padding(12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                if (bitmap != null) {
-                    Image(
+                when {
+                    bitmap != null -> Image(
                         bitmap!!.asImageBitmap(),
                         contentDescription = item.label,
                         modifier = Modifier.size(56.dp)
                     )
-                } else {
-                    Box(Modifier.size(56.dp), contentAlignment = Alignment.Center) {
+                    localIcon != null -> androidx.compose.ui.viewinterop.AndroidView(
+                        factory = {
+                            android.widget.ImageView(it).apply {
+                                setImageDrawable(localIcon)
+                                scaleType = android.widget.ImageView.ScaleType.CENTER_INSIDE
+                            }
+                        },
+                        modifier = Modifier.size(56.dp)
+                    )
+                    else -> Box(Modifier.size(56.dp), contentAlignment = Alignment.Center) {
                         Icon(Icons.Default.SportsEsports, null, modifier = Modifier.size(36.dp))
                     }
                 }
@@ -349,26 +362,16 @@ class MainActivity : ComponentActivity() {
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Box(
-                        modifier = Modifier.size(96.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Image(
-                            painter = painterResource(id = R.drawable.ic_launcher),
-                            contentDescription = "Concept",
-                            modifier = Modifier.size(64.dp)
-                        )
-                        CircularProgressIndicator(
-                            modifier = Modifier
-                                .size(92.dp)
-                                .align(Alignment.TopCenter),
-                            strokeWidth = 3.dp
-                        )
-                    }
+                Box(Modifier.size(112.dp), contentAlignment = Alignment.Center) {
+                    Image(
+                        painter = painterResource(id = R.drawable.ic_launcher),
+                        contentDescription = "Concept",
+                        modifier = Modifier.size(68.dp)
+                    )
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(104.dp),
+                        strokeWidth = 3.dp
+                    )
                 }
             }
             return
@@ -452,42 +455,43 @@ class MainActivity : ComponentActivity() {
     @Composable
     fun Games() {
         val baseGames = listOf(
-            StoreItem("שחמט", "com.chess"),
-            StoreItem("סודוקו", "com.easybrain.sudoku.android"),
-            StoreItem("Flow Free", "com.bigduckgames.flow"),
-            StoreItem("2048", "com.androbaby.game2048"),
-            StoreItem("Solitaire", "com.mobirix.solitaire"),
-            StoreItem("Block Puzzle", "com.blockpuzzle.game"),
-            StoreItem("Word Search", "com.wordsearch.puzzle"),
-            StoreItem("Minesweeper", "com.microsoft.minesweeper"),
-            StoreItem("Tetris", "com.n3twork.tetris"),
-            StoreItem("ChessKid", "com.chesskid"),
-            StoreItem("Nonogram.com", "com.easybrain.nonogram"),
-            StoreItem("Wordscapes", "com.peoplefun.wordcross"),
-            StoreItem("Jigsaw Puzzle", "com.easybrain.jigsaw.puzzles"),
-            StoreItem("Unblock Me", "com.kiragames.unblockmefree"),
-            StoreItem("Checkers", "com.litegames.checkers.free"),
-            StoreItem("Backgammon", "com.litegames.backgammon.free"),
-            StoreItem("Four in a Row", "com.litegames.fourinarow"),
-            StoreItem("Reversi", "com.litegames.reversi.free"),
-            StoreItem("Word Cookies", "com.bitmango.go.wordcookies"),
-            StoreItem("Word Connect", "com.wordgames.wordconnect"),
-            StoreItem("Mahjong", "com.bitmango.go.mahjong"),
-            StoreItem("Dominoes", "com.iosdomino.domino"),
-            StoreItem("Ludo King", "com.ludo.king"),
-            StoreItem("Carrom Pool", "com.miniclip.carrom"),
+            StoreItem("Roblox", "com.roblox.client"),
+            StoreItem("Toca Boca World", "com.tocaboca.tocabocaworld"),
+            StoreItem("EA SPORTS FC Mobile", "com.ea.gp.fifamobile"),
             StoreItem("8 Ball Pool", "com.miniclip.eightballpool"),
-            StoreItem("Hill Climb Racing", "com.fingersoft.hillclimb"),
+            StoreItem("Candy Crush Saga", "com.king.candycrushsaga"),
+            StoreItem("Pokémon GO", "com.nianticlabs.pokemongo"),
+            StoreItem("Township", "com.playrix.township"),
+            StoreItem("eFootball", "jp.konami.pesam"),
+            StoreItem("Royal Match", "com.dreamgames.royalmatch"),
+            StoreItem("Gardenscapes", "com.playrix.gardenscapes"),
+            StoreItem("Clash of Clans", "com.supercell.clashofclans"),
+            StoreItem("Brawl Stars", "com.supercell.brawlstars"),
+            StoreItem("Minecraft", "com.mojang.minecraftpe"),
+            StoreItem("Genshin Impact", "com.miHoYo.GenshinImpact"),
+            StoreItem("Toon Blast", "net.peakgames.toonblast"),
             StoreItem("Subway Surfers", "com.kiloo.subwaysurf"),
+            StoreItem("Block Blast!", "com.block.juggle"),
+            StoreItem("Geometry Dash Lite", "com.robtopx.geometryjumplite"),
+            StoreItem("Hill Climb Racing", "com.fingersoft.hillclimb"),
             StoreItem("Temple Run 2", "com.imangi.templerun2"),
-            StoreItem("Angry Birds 2", "com.rovio.baba"),
-            StoreItem("Cut the Rope", "com.zeptolab.ctr.ads"),
             StoreItem("Fruit Ninja", "com.halfbrick.fruitninjafree"),
             StoreItem("Jetpack Joyride", "com.halfbrick.jetpackjoyride"),
-            StoreItem("Geometry Dash Lite", "com.robtopx.geometryjumplite"),
+            StoreItem("Angry Birds 2", "com.rovio.baba"),
+            StoreItem("Cut the Rope", "com.zeptolab.ctr.ads"),
             StoreItem("Crossy Road", "com.yodo1.crossyroad"),
-            StoreItem("Stack", "com.ketchapp.stack")
+            StoreItem("Ludo King", "com.ludo.king"),
+            StoreItem("Car Parking Multiplayer", "com.olzhas.carparking.multyplayer"),
+            StoreItem("Dream League Soccer", "com.firsttouchgames.dls7"),
+            StoreItem("PUBG MOBILE", "com.tencent.ig"),
+            StoreItem("Call of Duty Mobile", "com.activision.callofduty.shooter"),
+            StoreItem("Clash Royale", "com.supercell.clashroyale"),
+            StoreItem("Pokémon TCG Pocket", "jp.pokemon.pokemontcgp"),
+            StoreItem("My Talking Tom 2", "com.outfit7.mytalkingtom2"),
+            StoreItem("Magic Tiles 3", "com.youmusic.magictiles"),
+            StoreItem("Wordscapes", "com.peoplefun.wordcross")
         )
+
 
         val saved = getSharedPreferences("concept_items", MODE_PRIVATE)
             .getStringSet("games", emptySet())
