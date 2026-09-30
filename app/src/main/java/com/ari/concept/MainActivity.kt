@@ -21,6 +21,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.Block
@@ -307,43 +309,71 @@ class MainActivity : ComponentActivity() {
     private fun PlayStoreCard(item: StoreItem) {
         var bitmap by remember(item.packageName) { mutableStateOf(imageCache.get("play:" + item.packageName)) }
         val localIcon = remember(item.packageName) { installedDrawable(item.packageName) }
+
         LaunchedEffect(item.packageName) {
             val loaded = loadPlayIcon(item.packageName)
             if (loaded != null) bitmap = loaded
         }
 
-        androidx.compose.material3.Card(
+        Card(
             modifier = Modifier
+                .padding(4.dp)
                 .fillMaxWidth()
-                .padding(vertical = 4.dp)
-                .clickable { openPlay(item.packageName) }
         ) {
-            Row(
-                Modifier.fillMaxWidth().padding(12.dp),
-                verticalAlignment = Alignment.CenterVertically
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(6.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                when {
-                    bitmap != null -> Image(
-                        bitmap!!.asImageBitmap(),
-                        contentDescription = item.label,
-                        modifier = Modifier.size(56.dp)
-                    )
-                    localIcon != null -> androidx.compose.ui.viewinterop.AndroidView(
-                        factory = {
-                            android.widget.ImageView(it).apply {
-                                setImageDrawable(localIcon)
-                                scaleType = android.widget.ImageView.ScaleType.CENTER_INSIDE
-                            }
-                        },
-                        modifier = Modifier.size(56.dp)
-                    )
-                    else -> Box(Modifier.size(56.dp), contentAlignment = Alignment.Center) {
-                        Icon(Icons.Default.SportsEsports, null, modifier = Modifier.size(36.dp))
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(68.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    when {
+                        bitmap != null -> Image(
+                            bitmap!!.asImageBitmap(),
+                            contentDescription = item.label,
+                            modifier = Modifier.size(58.dp)
+                        )
+                        localIcon != null -> androidx.compose.ui.viewinterop.AndroidView(
+                            factory = {
+                                android.widget.ImageView(it).apply {
+                                    setImageDrawable(localIcon)
+                                    scaleType = android.widget.ImageView.ScaleType.CENTER_INSIDE
+                                }
+                            },
+                            modifier = Modifier.size(58.dp)
+                        )
+                        else -> Icon(
+                            Icons.Default.SportsEsports,
+                            contentDescription = item.label,
+                            modifier = Modifier.size(42.dp)
+                        )
                     }
                 }
-                Spacer(Modifier.width(12.dp))
-                Text(item.label, Modifier.weight(1f))
-                Text("Google Play")
+
+                Text(
+                    item.label,
+                    maxLines = 2,
+                    textAlign = TextAlign.Center,
+                    style = MaterialTheme.typography.labelSmall,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(32.dp)
+                )
+
+                Button(
+                    onClick = { openPlay(item.packageName) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(34.dp),
+                    contentPadding = PaddingValues(horizontal = 2.dp, vertical = 0.dp)
+                ) {
+                    Text("התקנה", fontSize = 11.sp)
+                }
             }
         }
     }
@@ -444,7 +474,11 @@ class MainActivity : ComponentActivity() {
                 modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
                 textAlign = TextAlign.Right
             )
-            LazyColumn(Modifier.weight(1f)) {
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(4),
+                modifier = Modifier.weight(1f),
+                contentPadding = PaddingValues(bottom = 8.dp)
+            ) {
                 items(apps, key = { it.packageName }) { app ->
                     PlayStoreCard(app)
                 }
@@ -510,7 +544,11 @@ class MainActivity : ComponentActivity() {
                 modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
                 textAlign = TextAlign.Right
             )
-            LazyColumn(Modifier.weight(1f)) {
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(4),
+                modifier = Modifier.weight(1f),
+                contentPadding = PaddingValues(bottom = 8.dp)
+            ) {
                 items(games, key = { it.packageName }) { game ->
                     PlayStoreCard(game)
                 }
