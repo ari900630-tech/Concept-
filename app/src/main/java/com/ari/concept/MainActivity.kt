@@ -390,18 +390,30 @@ class MainActivity : ComponentActivity() {
                 textAlign = TextAlign.Right
             )
             if (loading) {
-                var dots by remember { mutableIntStateOf(0) }
+                var activeDot by remember { mutableIntStateOf(0) }
                 LaunchedEffect(Unit) {
                     while (loading) {
-                        delay(450)
-                        dots = (dots + 1) % 4
+                        delay(400)
+                        activeDot = (activeDot + 1) % 3
                     }
                 }
-                Text(
-                    "טוען אפליקציות" + ".".repeat(dots),
+                Row(
                     modifier = Modifier.fillMaxWidth().padding(24.dp),
-                    textAlign = TextAlign.Center
-                )
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    repeat(3) { index ->
+                        Text(
+                            "•",
+                            fontSize = 28.sp,
+                            color = if (index == activeDot)
+                                MaterialTheme.colorScheme.onSurface
+                            else
+                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.22f),
+                            modifier = Modifier.padding(horizontal = 5.dp)
+                        )
+                    }
+                }
             } else {
                 LazyColumn(Modifier.weight(1f)) {
                     items(apps, key = { it.packageName }) { app ->
