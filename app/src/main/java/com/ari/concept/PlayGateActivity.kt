@@ -25,6 +25,13 @@ class PlayGateActivity : ComponentActivity() {
 
     @Composable
     private fun Details(pkg: String) {
+        var showPasswordDialog by remember { mutableStateOf(false) }
+        var enteredPassword by remember { mutableStateOf("") }
+        var passwordError by remember { mutableStateOf(false) }
+        val savedPassword = remember {
+            getSharedPreferences("concept_security", MODE_PRIVATE)
+                .getString("login_password", "") ?: ""
+        }
         val appInfo = remember(pkg) { runCatching { packageManager.getApplicationInfo(pkg, 0) }.getOrNull() }
         val installed = appInfo != null
         val label = appInfo?.let { packageManager.getApplicationLabel(it).toString() } ?: pkg
@@ -38,7 +45,58 @@ class PlayGateActivity : ComponentActivity() {
                 ) {
                     Button(onClick = { openPlay(pkg) }, Modifier.fillMaxWidth().height(52.dp)) { Text("עדכון") }
                     Button(onClick = { openPlay(pkg) }, Modifier.fillMaxWidth().height(52.dp)) { Text("התקנה") }
-                    Button(onClick = { uninstall(pkg) }, Modifier.fillMaxWidth().height(52.dp), enabled = installed) { Text("הסרה") }
+                    Button(
+                        onClick = {
+                            if (savedPassword.isBlank()) {
+                                uninstall(pkg)
+                            } else {
+                                enteredPassword = ""
+                                passwordError = false
+                                showPasswordDialog = true
+                            }
+                        },
+                        Modifier.fillMaxWidth().height(52.dp),
+                        enabled = installed
+                    ) { Text("הסרה") }
+
+                    if (showPasswordDialog) {
+                        AlertDialog(
+                            onDismissRequest = { showPasswordDialog = false },
+                            title = { Text("נדרשת סיסמה") },
+                            text = {
+                                Column {
+                                    Text("יש להזין את הסיסמה שהוגדרה באפליקציה לפני הסרה.")
+                                    Spacer(Modifier.height(10.dp))
+                                    OutlinedTextField(
+                                        value = enteredPassword,
+                                        onValueChange = {
+                                            enteredPassword = it
+                                            passwordError = false
+                                        },
+                                        label = { Text("סיסמה") },
+                                        singleLine = true,
+                                        isError = passwordError
+                                    )
+                                    if (passwordError) {
+                                        Text("סיסמה שגויה", color = MaterialTheme.colorScheme.error)
+                                    }
+                                }
+                            },
+                            confirmButton = {
+                                TextButton(onClick = {
+                                    if (enteredPassword == savedPassword) {
+                                        showPasswordDialog = false
+                                        uninstall(pkg)
+                                    } else {
+                                        passwordError = true
+                                    }
+                                }) { Text("אישור") }
+                            },
+                            dismissButton = {
+                                TextButton(onClick = { showPasswordDialog = false }) { Text("ביטול") }
+                            }
+                        )
+                    }
                     OutlinedButton(onClick = { finish() }, Modifier.fillMaxWidth().height(52.dp)) { Text("חזור") }
                 }
             }
