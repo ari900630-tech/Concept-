@@ -38,6 +38,7 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
@@ -389,34 +390,8 @@ class MainActivity : ComponentActivity() {
                 modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
                 textAlign = TextAlign.Right
             )
-            if (loading) {
-                var activeDot by remember { mutableIntStateOf(0) }
-                LaunchedEffect(Unit) {
-                    while (loading) {
-                        delay(400)
-                        activeDot = (activeDot + 1) % 3
-                    }
-                }
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(24.dp),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    repeat(3) { index ->
-                        Text(
-                            "•",
-                            fontSize = 28.sp,
-                            color = if (index == activeDot)
-                                MaterialTheme.colorScheme.onSurface
-                            else
-                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.22f),
-                            modifier = Modifier.padding(horizontal = 5.dp)
-                        )
-                    }
-                }
-            } else {
-                LazyColumn(Modifier.weight(1f)) {
-                    items(apps, key = { it.packageName }) { app ->
+            LazyColumn(Modifier.weight(1f)) {
+                items(apps, key = { it.packageName }) { app ->
                     PlayStoreCard(app)
                 }
             }
@@ -752,7 +727,7 @@ class MainActivity : ComponentActivity() {
                         TextButton(onClick = {
                             if (disablePassword == password) {
                                 showDisableDialog = false
-                                startActivity(Intent(Settings.ACTION_DEVICE_ADMIN_SETTINGS))
+                                startActivity(Intent("android.settings.SECURITY_SETTINGS"))
                             } else {
                                 disablePasswordError = true
                             }
