@@ -450,7 +450,7 @@ class MainActivity : ComponentActivity() {
                             selected = tab == i,
                             onClick = { tab = i },
                             icon = { Icon(icons[i], contentDescription = label) },
-                            label = { if (i > 1) Text(label) }
+                            label = { Text(label) }
                         )
                     }
                 }
