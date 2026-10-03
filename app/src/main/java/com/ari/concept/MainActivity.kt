@@ -41,6 +41,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -154,6 +155,9 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        window.decorView.systemUiVisibility = android.view.View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY or android.view.View.SYSTEM_UI_FLAG_LAYOUT_STABLE or android.view.View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or android.view.View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION or android.view.View.SYSTEM_UI_FLAG_FULLSCREEN or android.view.View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+        window.statusBarColor = android.graphics.Color.TRANSPARENT
+        window.navigationBarColor = android.graphics.Color.TRANSPARENT
         getSharedPreferences("concept_protection", MODE_PRIVATE).edit().putBoolean("enabled", true).apply()
         val alwaysBlockedPackages = alwaysBlockedApps.map { it.packageName }.toSet()
         getSharedPreferences("blocked", MODE_PRIVATE).edit().apply {
@@ -855,14 +859,18 @@ class MainActivity : ComponentActivity() {
                                 value = newPassword,
                                 onValueChange = { newPassword = it; passwordError = "" },
                                 label = { Text("סיסמה") },
-                                singleLine = true
+                                singleLine = true,
+                                textStyle = TextStyle(textAlign = TextAlign.Right, textDirection = androidx.compose.ui.text.style.TextDirection.Rtl),
+                                modifier = Modifier.fillMaxWidth()
                             )
                             Spacer(Modifier.height(12.dp))
                             OutlinedTextField(
                                 value = confirmPassword,
                                 onValueChange = { confirmPassword = it; passwordError = "" },
                                 label = { Text("אימות סיסמה") },
-                                singleLine = true
+                                singleLine = true,
+                                textStyle = TextStyle(textAlign = TextAlign.Right, textDirection = androidx.compose.ui.text.style.TextDirection.Rtl),
+                                modifier = Modifier.fillMaxWidth()
                             )
                             if (passwordError.isNotBlank()) {
                                 Text(passwordError, color = MaterialTheme.colorScheme.error)
