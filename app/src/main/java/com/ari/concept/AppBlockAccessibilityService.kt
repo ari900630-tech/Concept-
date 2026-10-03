@@ -1,9 +1,11 @@
 package com.ari.concept
 
 import android.accessibilityservice.AccessibilityService
+import android.accessibilityservice.GestureDescription
 import android.graphics.Color
 import android.graphics.PixelFormat
 import android.graphics.Rect
+import android.graphics.Path
 import android.graphics.drawable.GradientDrawable
 import android.net.Uri
 import android.content.Intent
@@ -96,8 +98,7 @@ class AppBlockAccessibilityService : AccessibilityService() {
             pkg != "com.android.vending" &&
             getSharedPreferences("blocked", MODE_PRIVATE).getBoolean(pkg, false)
         ) {
-            performGlobalAction(GLOBAL_ACTION_HOME)
-            showBlockedAppBlock()
+            ejectBlockedAppAndClearRecent(pkg)
             return
         }
     }
@@ -224,6 +225,75 @@ class AppBlockAccessibilityService : AccessibilityService() {
     private fun hidePlayControls() {
         playControlsView?.let { runCatching { windowManager?.removeView(it) } }
         playControlsView = null
+    }
+
+    private fun ejectBlockedAppAndClearRecent(pkg: String) {
+        hideBlockedAppBlock()
+        performGlobalAction(GLOBAL_ACTION_HOME)
+        mainHandler.postDelayed({
+            performGlobalAction(GLOBAL_ACTION_RECENTS)
+            mainHandler.postDelayed({
+                removeBlockedTaskFromRecents(pkg)
+            }, 450)
+        }, 300)
+    }
+
+    private fun removeBlockedTaskFromRecents(pkg: String) {
+        val label = runCatching {
+            packageManager.getApplicationInfo(pkg, 0).loadLabel(packageManager).toString()
+        }.getOrDefault(pkg)
+
+        val lowered = label.lowercase()
+        var boundsToDismiss: Rect? = null
+
+        windows.forEach { window ->
+            val root = window.root ?: return@forEach
+            fun walk(node: AccessibilityNodeInfo) {
+                if (boundsToDismiss != null) return
+                val nodePkg = node.packageName?.toString().orEmpty()
+                val text = (node.text?.toString().orEmpty() + " " +
+                    node.contentDescription?.toString().orEmpty()).lowercase()
+
+                if (node.isVisibleToUser &&
+                    (nodePkg == pkg || text.contains(lowered))
+                ) {
+                    val bounds = Rect()
+                    node.getBoundsInScreen(bounds)
+                    if (bounds.width() > 140 && bounds.height() > 120) {
+                        boundsToDismiss = bounds
+                        return
+                    }
+                }
+
+                for (i in 0 until node.childCount) {
+                    node.getChild(i)?.let { walk(it) }
+                }
+            }
+            walk(root)
+        }
+
+        val bounds = boundsToDismiss
+        if (bounds != null) {
+            val startX = bounds.centerX().toFloat()
+            val startY = (bounds.bottom - 80).coerceAtLeast(bounds.top + 80).toFloat()
+            val endY = (bounds.top - 120).toFloat()
+            val path = Path().apply {
+                moveTo(startX, startY)
+                lineTo(startX, endY)
+            }
+            val gesture = GestureDescription.Builder()
+                .addStroke(GestureDescription.StrokeDescription(path, 0, 350))
+                .build()
+
+            runCatching {
+                dispatchGesture(gesture, object : GestureResultCallback() {}, null)
+            }
+        }
+
+        mainHandler.postDelayed({
+            performGlobalAction(GLOBAL_ACTION_HOME)
+            mainHandler.postDelayed({ showBlockedAppBlock() }, 180)
+        }, 520)
     }
 
     private fun showBlockedAppBlock() {
