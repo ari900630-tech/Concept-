@@ -96,6 +96,7 @@ class AppBlockAccessibilityService : AccessibilityService() {
             pkg != "com.android.vending" &&
             getSharedPreferences("blocked", MODE_PRIVATE).getBoolean(pkg, false)
         ) {
+            performGlobalAction(GLOBAL_ACTION_HOME)
             showBlockedAppBlock()
             return
         }
