@@ -791,7 +791,8 @@ class MainActivity : ComponentActivity() {
                 onClick = {
                     newPassword = password
                     confirmPassword = password
-                    passwordError = ""                    showPasswordDialog = true
+                    passwordError = ""
+                    showPasswordDialog = true
                 },
                 modifier = Modifier.fillMaxWidth()
             ) {
