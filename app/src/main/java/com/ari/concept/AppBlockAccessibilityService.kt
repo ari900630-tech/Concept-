@@ -205,28 +205,30 @@ class AppBlockAccessibilityService : AccessibilityService() {
                 node.performAction(AccessibilityNodeInfo.ACTION_CLICK)
                 return
             }
-            if (node != null) {
-                var parent = node
-                repeat(8) {
-                    if (parent.isClickable && parent.performAction(AccessibilityNodeInfo.ACTION_CLICK)) {
-                        return
-                    }
-                    val next = parent.parent ?: return@repeat
-                    parent = next
+            val actionNode = node ?: return
+            var parent = actionNode
+            repeat(8) {
+                if (parent.isClickable && parent.performAction(AccessibilityNodeInfo.ACTION_CLICK)) {
+                    return
                 }
+                val next = parent.parent ?: return@repeat
+                parent = next
+            }
 
-                val bounds = Rect()
-                node.getBoundsInScreen(bounds)
-                if (bounds.width() > 0 && bounds.height() > 0) {
-                    val x = bounds.centerX().toFloat()
-                    val y = bounds.centerY().toFloat()
-                    val path = Path().apply { moveTo(x, y) }
-                    val gesture = GestureDescription.Builder()
-                        .addStroke(GestureDescription.StrokeDescription(path, 0, 80))
-                        .build()
-                    runCatching {
-                        dispatchGesture(gesture, object : GestureResultCallback() {}, null)
-                    }
+            val bounds = Rect()
+            actionNode.getBoundsInScreen(bounds)
+            if (bounds.width() > 0 && bounds.height() > 0) {
+                val x = bounds.centerX().toFloat()
+                val y = bounds.centerY().toFloat()
+                val path = Path().apply {
+                    moveTo(x, y)
+                    lineTo(x + 1f, y + 1f)
+                }
+                val gesture = GestureDescription.Builder()
+                    .addStroke(GestureDescription.StrokeDescription(path, 0, 80))
+                    .build()
+                runCatching {
+                    dispatchGesture(gesture, object : GestureResultCallback() {}, null)
                 }
             }
         }
