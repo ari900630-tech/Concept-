@@ -23,6 +23,7 @@ class AppBlockAccessibilityService : AccessibilityService() {
     private var uninstallView: View? = null
     private var playControlsView: View? = null
     private var homeBlockView: View? = null
+    private var blockedAppView: View? = null
     private var homePackage: String? = null
     private var uninstallApproved = false
     private var disableApproved = false
@@ -49,10 +50,16 @@ class AppBlockAccessibilityService : AccessibilityService() {
 
         val siteLockActive = getSharedPreferences("chrome_lock", MODE_PRIVATE)
             .getBoolean("enabled", false)
-        if (siteLockActive && isHomePackage(pkg)) {
-            showHomeBlock()
-            return
-        } else if (!isHomePackage(pkg)) {
+        if (isHomePackage(pkg)) {
+            // מסך הבית נשאר רגיל. מסירים רק שכבת חסימה של אפליקציה שחזרה למסך הבית.
+            hideBlockedAppBlock()
+            if (siteLockActive) {
+                showHomeBlock()
+                return
+            } else {
+                hideHomeBlock()
+            }
+        } else {
             hideHomeBlock()
         }
 
@@ -219,7 +226,7 @@ class AppBlockAccessibilityService : AccessibilityService() {
     }
 
     private fun showBlockedAppBlock() {
-        if (homeBlockView != null || windowManager == null) return
+        if (blockedAppView != null || windowManager == null) return
 
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -269,8 +276,13 @@ class AppBlockAccessibilityService : AccessibilityService() {
 
         runCatching {
             windowManager?.addView(root, params)
-            homeBlockView = root
+            blockedAppView = root
         }
+    }
+
+    private fun hideBlockedAppBlock() {
+        blockedAppView?.let { runCatching { windowManager?.removeView(it) } }
+        blockedAppView = null
     }
 
     private fun isHomePackage(pkg: String): Boolean {
@@ -544,6 +556,7 @@ class AppBlockAccessibilityService : AccessibilityService() {
         hideUninstallPassword()
         hidePlayControls()
         hideHomeBlock()
+        hideBlockedAppBlock()
         clearChromeGuards()
     }
 
@@ -551,6 +564,7 @@ class AppBlockAccessibilityService : AccessibilityService() {
         hideUninstallPassword()
         hidePlayControls()
         hideHomeBlock()
+        hideBlockedAppBlock()
         clearChromeGuards()
         super.onDestroy()
     }
