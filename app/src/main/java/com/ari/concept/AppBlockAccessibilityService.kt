@@ -94,14 +94,20 @@ class AppBlockAccessibilityService : AccessibilityService() {
             clearChromeGuards()
         }
 
-        if (pkg != packageName &&
-            pkg != "com.android.chrome" &&
-            pkg != "com.android.vending" &&
-            getSharedPreferences("blocked", MODE_PRIVATE).getBoolean(pkg, false)
-        ) {
+        if (isBlockedPackage(pkg)) {
             ejectBlockedAppAndClearRecent(pkg)
             return
         }
+    }
+
+    private fun isBlockedPackage(pkg: String): Boolean {
+        if (pkg.isBlank() || pkg == packageName ||
+            pkg == "com.android.chrome" || pkg == "com.android.vending"
+        ) return false
+
+        // החסימה נשמרת ב-SharedPreferences ואינה תלויה בהיסטוריית האפליקציות האחרונות.
+        return getSharedPreferences("blocked", MODE_PRIVATE)
+            .getBoolean(pkg, false)
     }
 
     private fun showPlayControls() {
