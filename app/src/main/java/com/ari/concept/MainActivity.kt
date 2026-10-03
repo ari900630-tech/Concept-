@@ -25,6 +25,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.Block
@@ -579,7 +580,7 @@ class MainActivity : ComponentActivity() {
                 modifier = Modifier.weight(1f),
                 contentPadding = PaddingValues(bottom = 8.dp)
             ) {
-                items(visibleApps, key = { it.packageName }) { index, app ->
+                itemsIndexed(visibleApps, key = { _, it -> it.packageName }) { index, app ->
                     PlayStoreCard(app, index * 140L)
                 }
             }
@@ -710,7 +711,7 @@ class MainActivity : ComponentActivity() {
                 modifier = Modifier.weight(1f),
                 contentPadding = PaddingValues(bottom = 8.dp)
             ) {
-                items(games, key = { it.packageName }) { index, game ->
+                itemsIndexed(games, key = { _, it -> it.packageName }) { index, game ->
                     PlayStoreCard(game, index * 140L)
                 }
             }
