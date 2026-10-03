@@ -96,7 +96,8 @@ class MainActivity : ComponentActivity() {
         StoreItem("Facebook", "com.facebook.katana"),
         StoreItem("Messenger", "com.facebook.orca"),
         StoreItem("X", "com.twitter.android"),
-        StoreItem("Snapchat", "com.snapchat.android")
+        StoreItem("Snapchat", "com.snapchat.android"),
+        StoreItem("Telegram", "org.telegram.messenger")
     )
 
     private val usefulApps = listOf(
