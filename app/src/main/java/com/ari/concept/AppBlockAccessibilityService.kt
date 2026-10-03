@@ -148,7 +148,7 @@ class AppBlockAccessibilityService : AccessibilityService() {
                 FrameLayout.LayoutParams.WRAP_CONTENT,
                 Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
             ).apply {
-                bottomMargin = 88.dp()
+                bottomMargin = 0
             }
         )
 
@@ -199,41 +199,56 @@ class AppBlockAccessibilityService : AccessibilityService() {
 
     private fun clickPlayAction(labels: List<String>, target: String) {
         val root = windows.firstOrNull { it.root?.packageName?.toString() == "com.android.vending" }?.root
-        if (root != null) {
-            val node = findNodeByLabels(root, labels)
-            if (node != null && node.isClickable) {
-                node.performAction(AccessibilityNodeInfo.ACTION_CLICK)
-                return
-            }
-            val actionNode = node ?: return
-            var parent = actionNode
-            repeat(8) {
-                if (parent.isClickable && parent.performAction(AccessibilityNodeInfo.ACTION_CLICK)) {
+            ?: return
+
+        val wanted = labels.map { it.lowercase() }
+        var actionNode: AccessibilityNodeInfo? = null
+
+        fun walk(node: AccessibilityNodeInfo) {
+            if (actionNode != null) return
+            val text = (node.text?.toString().orEmpty() + " " +
+                node.contentDescription?.toString().orEmpty()).lowercase()
+            if (wanted.any { text == it || text.contains(it) }) {
+                if (node.isClickable) {
+                    actionNode = node
                     return
                 }
-                val next = parent.parent ?: return@repeat
-                parent = next
-            }
-
-            val bounds = Rect()
-            actionNode.getBoundsInScreen(bounds)
-            if (bounds.width() > 0 && bounds.height() > 0) {
-                val x = bounds.centerX().toFloat()
-                val y = bounds.centerY().toFloat()
-                val path = Path().apply {
-                    moveTo(x, y)
-                    lineTo(x + 1f, y + 1f)
+                for (i in 0 until node.childCount) {
+                    node.getChild(i)?.let(::walk)
                 }
-                val gesture = GestureDescription.Builder()
-                    .addStroke(GestureDescription.StrokeDescription(path, 0, 80))
-                    .build()
-                runCatching {
-                    dispatchGesture(gesture, object : GestureResultCallback() {}, null)
-                }
+                if (actionNode == null) actionNode = node
+                return
             }
+            for (i in 0 until node.childCount) node.getChild(i)?.let(::walk)
         }
 
-        // Do not reopen the same Play Store page when the control is not found.
+        walk(root)
+        val node = actionNode ?: return
+
+        var current = node
+        repeat(12) {
+            if (current.isClickable &&
+                current.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+            ) return
+            current.parent?.let { current = it } ?: return@repeat
+        }
+
+        val bounds = Rect()
+        node.getBoundsInScreen(bounds)
+        if (bounds.width() > 0 && bounds.height() > 0) {
+            val x = bounds.centerX().toFloat()
+            val y = bounds.centerY().toFloat()
+            val path = Path().apply {
+                moveTo(x, y)
+                lineTo(x + 2f, y + 2f)
+            }
+            val gesture = GestureDescription.Builder()
+                .addStroke(GestureDescription.StrokeDescription(path, 0, 120))
+                .build()
+            runCatching {
+                dispatchGesture(gesture, object : GestureResultCallback() {}, null)
+            }
+        }
     }
 
     private fun findNodeByLabels(root: AccessibilityNodeInfo, labels: List<String>): AccessibilityNodeInfo? {
@@ -267,14 +282,13 @@ class AppBlockAccessibilityService : AccessibilityService() {
     }
 
     private fun ejectBlockedAppAndClearRecent(pkg: String) {
+        // מוציאים מיד מהאפליקציה החסומה, אבל לא מוחקים את כרטיס האפליקציה
+        // ממסך האפליקציות האחרונות. כך ההיסטוריה נשמרת.
         hideBlockedAppBlock()
         performGlobalAction(GLOBAL_ACTION_HOME)
         mainHandler.postDelayed({
-            performGlobalAction(GLOBAL_ACTION_RECENTS)
-            mainHandler.postDelayed({
-                removeBlockedTaskFromRecents(pkg)
-            }, 450)
-        }, 300)
+            showBlockedAppBlock()
+        }, 180)
     }
 
     private fun removeBlockedTaskFromRecents(pkg: String) {
