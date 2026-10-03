@@ -504,6 +504,13 @@ class MainActivity : ComponentActivity() {
                 }
                 item {
                     FilterChip(
+                        selected = selectedCategory == "לא חסומות",
+                        onClick = { selectedCategory = "לא חסומות" },
+                        label = { Text("✅") }
+                    )
+                }
+                item {
+                    FilterChip(
                         selected = selectedCategory == "הכול",
                         onClick = { selectedCategory = "הכול" },
                         label = { Text("הכול") }
@@ -511,10 +518,15 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
-            val visibleApps = if (selectedCategory == "חסומות תמיד") {
-                alwaysBlockedApps
-            } else {
-                apps
+            val blockedPackages = getSharedPreferences("blocked", MODE_PRIVATE)
+                .all.filterValues { it is Boolean && it }.keys
+            val visibleApps = when (selectedCategory) {
+                "חסומות תמיד" -> alwaysBlockedApps
+                "לא חסומות" -> apps.filter {
+                    it.packageName !in blockedPackages &&
+                    it.packageName !in alwaysBlockedApps.map { item -> item.packageName }
+                }
+                else -> apps
             }
 
             LazyVerticalGrid(
