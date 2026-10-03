@@ -89,7 +89,8 @@ class AppBlockAccessibilityService : AccessibilityService() {
             pkg != "com.android.vending" &&
             getSharedPreferences("blocked", MODE_PRIVATE).getBoolean(pkg, false)
         ) {
-            performGlobalAction(GLOBAL_ACTION_HOME)
+            showBlockedAppBlock()
+            return
         }
     }
 
@@ -215,6 +216,61 @@ class AppBlockAccessibilityService : AccessibilityService() {
     private fun hidePlayControls() {
         playControlsView?.let { runCatching { windowManager?.removeView(it) } }
         playControlsView = null
+    }
+
+    private fun showBlockedAppBlock() {
+        if (homeBlockView != null || windowManager == null) return
+
+        val root = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER
+            setPadding(40, 40, 40, 40)
+            setBackgroundColor(0xF5FFFFFF.toInt())
+            isClickable = true
+            isFocusable = true
+        }
+
+        val title = TextView(this).apply {
+            text = "חסום"
+            textSize = 30f
+            gravity = Gravity.CENTER
+        }
+
+        val message = TextView(this).apply {
+            text = "הגישה לאפליקציה הזו חסומה"
+            textSize = 18f
+            gravity = Gravity.CENTER
+            setPadding(0, 12, 0, 24)
+        }
+
+        val backApp = Button(this).apply {
+            text = "חזור לאפליקציה"
+            isAllCaps = false
+            setOnClickListener {
+                hideHomeBlock()
+                startActivity(Intent(this@AppBlockAccessibilityService, MainActivity::class.java).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                })
+            }
+        }
+
+        root.addView(title, LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
+        root.addView(message, LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
+        root.addView(backApp, LinearLayout.LayoutParams.MATCH_PARENT, 56.dp())
+
+        val params = WindowManager.LayoutParams(
+            WindowManager.LayoutParams.MATCH_PARENT,
+            WindowManager.LayoutParams.MATCH_PARENT,
+            WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
+            WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
+            PixelFormat.TRANSLUCENT
+        )
+        params.gravity = Gravity.CENTER
+
+        runCatching {
+            windowManager?.addView(root, params)
+            homeBlockView = root
+        }
     }
 
     private fun isHomePackage(pkg: String): Boolean {
