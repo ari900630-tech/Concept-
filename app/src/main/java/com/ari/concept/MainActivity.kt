@@ -197,8 +197,7 @@ class MainActivity : ComponentActivity() {
                     if (entered == correctPassword) onUnlocked() else error = true
                 },
                 modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("כניסה")
+            ) {                Text("כניסה")
             }
         }
     }
@@ -316,6 +315,8 @@ class MainActivity : ComponentActivity() {
             if (loaded != null) bitmap = loaded
         }
 
+        if (bitmap == null && localIcon == null) return
+
         Card(
             modifier = Modifier
                 .padding(4.dp)
@@ -397,8 +398,7 @@ class MainActivity : ComponentActivity() {
                     Image(
                         painter = painterResource(id = R.drawable.ic_launcher),
                         contentDescription = "Concept",
-                        modifier = Modifier.size(68.dp)
-                    )
+                        modifier = Modifier.size(68.dp)                    )
                     CircularProgressIndicator(
                         modifier = Modifier.size(104.dp),
                         strokeWidth = 3.dp
@@ -590,15 +590,9 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    override fun onResume() {
-        super.onResume()
-        getSharedPreferences("chrome_lock", MODE_PRIVATE).edit().putBoolean("enabled", false).apply()
-    }
-
     private fun openSiteInChrome(url: String) {
         val uri = Uri.parse(url)
-        getSharedPreferences("chrome_lock", MODE_PRIVATE).edit()
-            .putBoolean("enabled", true)
+        getSharedPreferences("chrome_lock", MODE_PRIVATE).edit()            .putBoolean("enabled", true)
             .putString("allowed_url", url)
             .putString("allowed_host", uri.host ?: "")
             .apply()
@@ -750,7 +744,7 @@ class MainActivity : ComponentActivity() {
                 startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
             }
 
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(12.dp))
 
             PermissionButton("אישור שליטה על הטלפון", adminOk) {
                 val admin = ComponentName(this@MainActivity, ConceptDeviceAdminReceiver::class.java)
@@ -760,7 +754,7 @@ class MainActivity : ComponentActivity() {
                 })
             }
 
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(12.dp))
 
             PermissionButton("הצגה מעל אפליקציות", overlayOk) {
                 startActivity(
@@ -771,13 +765,13 @@ class MainActivity : ComponentActivity() {
                 )
             }
 
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(12.dp))
 
             PermissionButton("נתוני שימוש", usageOk) {
                 startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
             }
 
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(12.dp))
 
             var password by remember {
                 mutableStateOf(
@@ -797,8 +791,7 @@ class MainActivity : ComponentActivity() {
                 onClick = {
                     newPassword = password
                     confirmPassword = password
-                    passwordError = ""
-                    showPasswordDialog = true
+                    passwordError = ""                    showPasswordDialog = true
                 },
                 modifier = Modifier.fillMaxWidth()
             ) {
@@ -819,7 +812,7 @@ class MainActivity : ComponentActivity() {
                                 label = { Text("סיסמה") },
                                 singleLine = true
                             )
-                            Spacer(Modifier.height(8.dp))
+                            Spacer(Modifier.height(12.dp))
                             OutlinedTextField(
                                 value = confirmPassword,
                                 onValueChange = { confirmPassword = it; passwordError = "" },
