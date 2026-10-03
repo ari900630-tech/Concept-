@@ -20,6 +20,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -84,6 +85,18 @@ class MainActivity : ComponentActivity() {
         "ביטוח ישיר" to "https://www.555.co.il/",
         "הראל" to "https://www.harel-group.co.il/",
         "אלטשולר שחם" to "https://www.as-invest.co.il/"
+    )
+
+    private val alwaysBlockedApps = listOf(
+        StoreItem("TikTok", "com.zhiliaoapp.musically"),
+        StoreItem("Instagram", "com.instagram.android"),
+        StoreItem("Google", "com.google.android.googlequicksearchbox"),
+        StoreItem("Chrome", "com.android.chrome"),
+        StoreItem("YouTube", "com.google.android.youtube"),
+        StoreItem("Facebook", "com.facebook.katana"),
+        StoreItem("Messenger", "com.facebook.orca"),
+        StoreItem("X", "com.twitter.android"),
+        StoreItem("Snapchat", "com.snapchat.android")
     )
 
     private val usefulApps = listOf(
@@ -426,7 +439,7 @@ class MainActivity : ComponentActivity() {
                             selected = tab == i,
                             onClick = { tab = i },
                             icon = { Icon(icons[i], contentDescription = label) },
-                            label = { Text(label) }
+                            label = { if (i > 1) Text(label) }
                         )
                     }
                 }
@@ -468,19 +481,42 @@ class MainActivity : ComponentActivity() {
         val apps = (usefulApps.map { StoreItem(it.first, it.second) } + saved)
             .distinctBy { it.packageName }
 
+        var selectedCategory by rememberSaveable { mutableStateOf("הכול") }
+
         Column(Modifier.fillMaxSize()) {
-            Text(
-                "אפליקציות",
-                style = MaterialTheme.typography.headlineMedium,
+            LazyRow(
                 modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
-                textAlign = TextAlign.Right
-            )
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                reverseLayout = true
+            ) {
+                item {
+                    FilterChip(
+                        selected = selectedCategory == "חסומות תמיד",
+                        onClick = { selectedCategory = "חסומות תמיד" },
+                        label = { Text("🚫") }
+                    )
+                }
+                item {
+                    FilterChip(
+                        selected = selectedCategory == "הכול",
+                        onClick = { selectedCategory = "הכול" },
+                        label = { Text("הכול") }
+                    )
+                }
+            }
+
+            val visibleApps = if (selectedCategory == "חסומות תמיד") {
+                alwaysBlockedApps
+            } else {
+                apps
+            }
+
             LazyVerticalGrid(
                 columns = GridCells.Fixed(4),
                 modifier = Modifier.weight(1f),
                 contentPadding = PaddingValues(bottom = 8.dp)
             ) {
-                items(apps, key = { it.packageName }) { app ->
+                items(visibleApps, key = { it.packageName }) { app ->
                     PlayStoreCard(app)
                 }
             }
@@ -539,12 +575,6 @@ class MainActivity : ComponentActivity() {
         val games = (baseGames + saved).distinctBy { it.packageName }
 
         Column(Modifier.fillMaxSize()) {
-            Text(
-                "משחקים",
-                style = MaterialTheme.typography.headlineMedium,
-                modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
-                textAlign = TextAlign.Right
-            )
             LazyVerticalGrid(
                 columns = GridCells.Fixed(4),
                 modifier = Modifier.weight(1f),
