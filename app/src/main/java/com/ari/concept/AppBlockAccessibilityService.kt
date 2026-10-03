@@ -288,13 +288,16 @@ class AppBlockAccessibilityService : AccessibilityService() {
     }
 
     private fun ejectBlockedAppAndClearRecent(pkg: String) {
-        // מוציאים מיד מהאפליקציה החסומה, אבל לא מוחקים את כרטיס האפליקציה
-        // ממסך האפליקציות האחרונות. כך ההיסטוריה נשמרת.
+        // מוציאים מיד מהאפליקציה החסומה ואז מסירים את המשימה שלה מ-Recent.
+        // ההגדרה ב-"blocked" נשארת, ולכן מחיקת ההיסטוריה לא מבטלת את החסימה.
         hideBlockedAppBlock()
         performGlobalAction(GLOBAL_ACTION_HOME)
         mainHandler.postDelayed({
-            showBlockedAppBlock()
-        }, 180)
+            performGlobalAction(GLOBAL_ACTION_RECENTS)
+            mainHandler.postDelayed({
+                removeBlockedTaskFromRecents(pkg)
+            }, 350)
+        }, 300)
     }
 
     private fun removeBlockedTaskFromRecents(pkg: String) {
