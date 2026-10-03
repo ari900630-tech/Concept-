@@ -509,13 +509,6 @@ class MainActivity : ComponentActivity() {
                         label = { Text("✅") }
                     )
                 }
-                item {
-                    FilterChip(
-                        selected = selectedCategory == "הכול",
-                        onClick = { selectedCategory = "הכול" },
-                        label = { Text("הכול") }
-                    )
-                }
             }
 
             val blockedPackages = getSharedPreferences("blocked", MODE_PRIVATE)
