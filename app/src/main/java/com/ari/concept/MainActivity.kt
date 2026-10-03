@@ -209,6 +209,7 @@ class MainActivity : ComponentActivity() {
                 label = { Text("סיסמה") },
                 singleLine = true,
                 isError = error,
+                textStyle = TextStyle(textAlign = TextAlign.Right, textDirection = androidx.compose.ui.text.style.TextDirection.Rtl),
                 modifier = Modifier.fillMaxWidth()
             )
             if (error) {
@@ -466,14 +467,6 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
-                FloatingActionButton(
-                    onClick = {
-                        startActivity(Intent(this@MainActivity, AIChatActivity::class.java))
-                    },
-                    modifier = Modifier.align(Alignment.TopEnd)
-                ) {
-                    Icon(Icons.Default.Chat, contentDescription = "צ׳אט AI")
-                }
             }
         }
     }
@@ -775,13 +768,7 @@ class MainActivity : ComponentActivity() {
     @Composable
     fun SettingsScreen() {
         Column(Modifier.fillMaxSize()) {
-            Text(
-                "הגדרות",
-                style = MaterialTheme.typography.headlineMedium,
-                modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
-                textAlign = TextAlign.Right
-            )
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(4.dp))
 
             val accessibilityOk = accessibilityEnabled()
             val adminOk = deviceAdminEnabled()
@@ -928,7 +915,9 @@ class MainActivity : ComponentActivity() {
                                 },
                                 label = { Text("סיסמה") },
                                 singleLine = true,
-                                isError = disablePasswordError
+                                isError = disablePasswordError,
+                                textStyle = TextStyle(textAlign = TextAlign.Right, textDirection = androidx.compose.ui.text.style.TextDirection.Rtl),
+                                modifier = Modifier.fillMaxWidth()
                             )
                             if (disablePasswordError) {
                                 Text("סיסמה שגויה", color = MaterialTheme.colorScheme.error)
