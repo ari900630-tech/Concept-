@@ -102,55 +102,101 @@ class MainActivity : ComponentActivity() {
     )
 
     private val usefulApps = listOf(
-        "בנק הפועלים" to "com.ideomobile.il",
-        "בנק לאומי" to "com.leumi.leumiwallet",
-        "בנק דיסקונט" to "com.discountbank.mobile",
-        "מכבי" to "com.maccabi.health",
-        "כללית" to "com.clalit.clalit",
-        "מאוחדת" to "com.meuhedet",
-        "לאומית" to "com.leumit",
-        "WhatsApp" to "com.whatsapp",
-        "Waze" to "com.waze",
-        "Google Maps" to "com.google.android.apps.maps",
-        "Moovit" to "com.tranzmate",
-        "PayBox" to "com.payboxapp",
-        "Dropbox" to "com.dropbox.android",
-        "Zoom" to "us.zoom.videomeetings",
-        "Google Drive" to "com.google.android.apps.docs",
-        "Google Calendar" to "com.google.android.calendar",
-        "Google Translate" to "com.google.android.apps.translate",
-        "Google Keep" to "com.google.android.keep",
-        "Outlook" to "com.microsoft.office.outlook",
-        "Google Docs" to "com.google.android.apps.docs.editors.docs",
-        "Google Sheets" to "com.google.android.apps.docs.editors.sheets",
-        "Microsoft Word" to "com.microsoft.office.word",
-        "Microsoft Excel" to "com.microsoft.office.excel",
-        "Microsoft PowerPoint" to "com.microsoft.office.powerpoint",
-        "Telegram" to "org.telegram.messenger",
-        "Signal" to "org.thoughtcrime.securesms",
-        "Skype" to "com.skype.raider",
-        "Microsoft Teams" to "com.microsoft.teams",
-        "OneDrive" to "com.microsoft.skydrive",
-        "Adobe Acrobat Reader" to "com.adobe.reader",
-        "Canva" to "com.canva.editor",
-        "Pinterest" to "com.pinterest",
-        "Shazam" to "com.shazam.android",
-        "Google Photos" to "com.google.android.apps.photos",
-        "Google Chrome" to "com.android.chrome",
-        "Firefox" to "org.mozilla.firefox",
-        "Google Authenticator" to "com.google.android.apps.authenticator2",
-        "Microsoft Authenticator" to "com.azure.authenticator",
-        "Google Wallet" to "com.google.android.apps.walletnfcrel",
-        "Amazon Shopping" to "com.amazon.mShop.android.shopping",
-        "eBay" to "com.ebay.mobile",
-        "Duolingo" to "com.duolingo",
-        "Khan Academy" to "org.khanacademy.android",
-        "Google Classroom" to "com.google.android.apps.classroom",
-        "Notion" to "notion.id",
-        "Evernote" to "com.evernote",
-        "Trello" to "com.trello",
-        "VLC" to "org.videolan.vlc",
-        "Spotify" to "com.spotify.music"
+            StoreItem("WhatsApp", "com.whatsapp"),
+            StoreItem("Waze", "com.waze"),
+            StoreItem("Moovit", "com.tranzmate"),
+            StoreItem("PayBox", "com.payboxapp"),
+            StoreItem("Dropbox", "com.dropbox.android"),
+            StoreItem("Zoom", "us.zoom.videomeetings"),
+            StoreItem("Google Drive", "com.google.android.apps.docs"),
+            StoreItem("Google Calendar", "com.google.android.calendar"),
+            StoreItem("Google Translate", "com.google.android.apps.translate"),
+            StoreItem("Google Keep", "com.google.android.keep"),
+            StoreItem("Outlook", "com.microsoft.office.outlook"),
+            StoreItem("Google Docs", "com.google.android.apps.docs.editors.docs"),
+            StoreItem("Google Sheets", "com.google.android.apps.docs.editors.sheets"),
+            StoreItem("Microsoft Word", "com.microsoft.office.word"),
+            StoreItem("Microsoft Excel", "com.microsoft.office.excel"),
+            StoreItem("Microsoft PowerPoint", "com.microsoft.office.powerpoint"),
+            StoreItem("Signal", "org.thoughtcrime.securesms"),
+            StoreItem("Skype", "com.skype.raider"),
+            StoreItem("Microsoft Teams", "com.microsoft.teams"),
+            StoreItem("OneDrive", "com.microsoft.skydrive"),
+            StoreItem("Adobe Acrobat Reader", "com.adobe.reader"),
+            StoreItem("Canva", "com.canva.editor"),
+            StoreItem("Pinterest", "com.pinterest"),
+            StoreItem("Shazam", "com.shazam.android"),
+            StoreItem("Google Photos", "com.google.android.apps.photos"),
+            StoreItem("Firefox", "org.mozilla.firefox"),
+            StoreItem("Google Authenticator", "com.google.android.apps.authenticator2"),
+            StoreItem("Microsoft Authenticator", "com.azure.authenticator"),
+            StoreItem("Google Wallet", "com.google.android.apps.walletnfcrel"),
+            StoreItem("Amazon Shopping", "com.amazon.mShop.android.shopping"),
+            StoreItem("eBay", "com.ebay.mobile"),
+            StoreItem("Duolingo", "com.duolingo"),
+            StoreItem("Khan Academy", "org.khanacademy.android"),
+            StoreItem("Google Classroom", "com.google.android.apps.classroom"),
+            StoreItem("Notion", "notion.id"),
+            StoreItem("Evernote", "com.evernote"),
+            StoreItem("Trello", "com.trello"),
+            StoreItem("VLC", "org.videolan.vlc"),
+            StoreItem("Spotify", "com.spotify.music"),
+            StoreItem("LinkedIn", "com.linkedin.android"),
+            StoreItem("Reddit", "com.reddit.frontpage"),
+            StoreItem("Discord", "com.discord"),
+            StoreItem("Twitch", "tv.twitch.android.app"),
+            StoreItem("Pinterest", "com.pinterest"),
+            StoreItem("AliExpress", "com.alibaba.aliexpresshd"),
+            StoreItem("Temu", "com.einnovation.temu"),
+            StoreItem("Booking.com", "com.booking"),
+            StoreItem("Airbnb", "com.airbnb.android"),
+            StoreItem("Uber", "com.ubercab"),
+            StoreItem("Bolt", "ee.mtakso.client"),
+            StoreItem("PayPal", "com.paypal.android.p2pmobile"),
+            StoreItem("Revolut", "com.revolut.revolut"),
+            StoreItem("Shufersal", "il.co.shufersal"),
+            StoreItem("Rami Levy", "com.ramilevy"),
+            StoreItem("Yad2", "com.yad2"),
+            StoreItem("Zap", "com.zap"),
+            StoreItem("Mako", "com.mako.news"),
+            StoreItem("Ynet", "com.ynetnews"),
+            StoreItem("Walla", "com.walla"),
+            StoreItem("Calcalist", "com.calcalist"),
+            StoreItem("Google News", "com.google.android.apps.magazines"),
+            StoreItem("Google Maps", "com.google.android.apps.maps"),
+            StoreItem("Google Home", "com.google.android.apps.chromecast.app"),
+            StoreItem("Google Meet", "com.google.android.apps.tachyon"),
+            StoreItem("Gmail", "com.google.android.gm"),
+            StoreItem("YouTube Music", "com.google.android.apps.youtube.music"),
+            StoreItem("Files by Google", "com.google.android.apps.nbu.files"),
+            StoreItem("Google Lens", "com.google.ar.lens"),
+            StoreItem("Microsoft OneNote", "com.microsoft.office.onenote"),
+            StoreItem("Microsoft To Do", "com.microsoft.todos"),
+            StoreItem("Slack", "com.Slack"),
+            StoreItem("Asana", "com.asana.app"),
+            StoreItem("Todoist", "com.todoist"),
+            StoreItem("Grammarly", "com.grammarly.android.keyboard"),
+            StoreItem("1Password", "com.onepassword.android"),
+            StoreItem("Bitwarden", "com.x8bit.bitwarden"),
+            StoreItem("Duolingo ABC", "com.duolingo.literacy"),
+            StoreItem("Coursera", "org.coursera.android"),
+            StoreItem("Udemy", "com.udemy.android"),
+            StoreItem("Photomath", "com.microblink.photomath"),
+            StoreItem("CapCut", "com.lemon.lvoverseas"),
+            StoreItem("Lightroom", "com.adobe.lrmobile"),
+            StoreItem("Snapseed", "com.niksoftware.snapseed"),
+            StoreItem("InShot", "com.camerasideas.instashot"),
+            StoreItem("Picsart", "com.picsart.studio"),
+            StoreItem("Weather & Radar", "de.wetteronline.wetterapp"),
+            StoreItem("AccuWeather", "com.accuweather.android"),
+            StoreItem("Google Fit", "com.google.android.apps.fitness"),
+            StoreItem("Strava", "com.strava"),
+            StoreItem("Fitbit", "com.fitbit.FitbitMobile"),
+            StoreItem("MyFitnessPal", "com.myfitnesspal.android"),
+            StoreItem("AliExpress", "com.alibaba.aliexpresshd"),
+            StoreItem("Amazon Kindle", "com.amazon.kindle"),
+            StoreItem("Audible", "com.audible.application"),
+            StoreItem("Kindle", "com.amazon.kindle")
     )
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -330,14 +376,15 @@ class MainActivity : ComponentActivity() {
         return loadBitmap("https://www.google.com/s2/favicons?domain=$host&sz=128", "site:$host")
     }
     @Composable
-    private fun PlayStoreCard(item: StoreItem) {
+    private fun PlayStoreCard(item: StoreItem, loadDelayMs: Long = 0L) {
         var bitmap by remember(item.packageName) { mutableStateOf(imageCache.get("play:" + item.packageName)) }
         var playAvailable by remember(item.packageName) { mutableStateOf(bitmap != null) }
         val localIcon = remember(item.packageName) { installedDrawable(item.packageName) }
         val blocked = getSharedPreferences("blocked", MODE_PRIVATE)
             .getBoolean(item.packageName, false)
 
-        LaunchedEffect(item.packageName) {
+        LaunchedEffect(item.packageName, loadDelayMs) {
+            delay(loadDelayMs)
             val loaded = loadPlayIcon(item.packageName)
             if (loaded != null) {
                 bitmap = loaded
@@ -532,8 +579,8 @@ class MainActivity : ComponentActivity() {
                 modifier = Modifier.weight(1f),
                 contentPadding = PaddingValues(bottom = 8.dp)
             ) {
-                items(visibleApps, key = { it.packageName }) { app ->
-                    PlayStoreCard(app)
+                items(visibleApps, key = { it.packageName }) { index, app ->
+                    PlayStoreCard(app, index * 140L)
                 }
             }
         }
@@ -576,7 +623,74 @@ class MainActivity : ComponentActivity() {
             StoreItem("Pokémon TCG Pocket", "jp.pokemon.pokemontcgp"),
             StoreItem("My Talking Tom 2", "com.outfit7.mytalkingtom2"),
             StoreItem("Magic Tiles 3", "com.youmusic.magictiles"),
-            StoreItem("Wordscapes", "com.peoplefun.wordcross")
+            StoreItem("Wordscapes", "com.peoplefun.wordcross"),
+            StoreItem("Among Us", "com.innersloth.spacemafia"),
+            StoreItem("Stumble Guys", "com.kitkagames.fallbuddies"),
+            StoreItem("Temple Run", "com.imangi.templerun"),
+            StoreItem("Angry Birds Friends", "com.rovio.baba"),
+            StoreItem("Angry Birds Dream Blast", "com.rovio.dream"),
+            StoreItem("Sonic Dash", "com.sega.sonicdash"),
+            StoreItem("Sonic Forces", "com.sega.sonicforces"),
+            StoreItem("Mario Kart Tour", "com.nintendo.zaka"),
+            StoreItem("Super Mario Run", "com.nintendo.zara"),
+            StoreItem("Plants vs Zombies 2", "com.ea.game.pvz2_row"),
+            StoreItem("Plants vs Zombies", "com.ea.game.pvzfree_row"),
+            StoreItem("Fruit Ninja Classic", "com.halfbrick.fruitninjafree"),
+            StoreItem("Jetpack Joyride 2", "com.halfbrick.jetpackjoyride2"),
+            StoreItem("Hungry Shark Evolution", "com.fgol.HungrySharkEvolution"),
+            StoreItem("Hungry Shark World", "com.fgol.HungrySharkWorld"),
+            StoreItem("Shadow Fight 3", "com.nekki.shadowfight3"),
+            StoreItem("Shadow Fight 4", "com.nekki.shadowfightarena"),
+            StoreItem("Asphalt 9", "com.gameloft.android.ANMP.GloftA9HM"),
+            StoreItem("Asphalt 8", "com.gameloft.android.ANMP.GloftA8HM"),
+            StoreItem("Real Racing 3", "com.ea.games.r3_row"),
+            StoreItem("Need for Speed No Limits", "com.ea.game.nfs14_row"),
+            StoreItem("CSR Racing 2", "com.naturalmotion.customstreetracer2"),
+            StoreItem("Hill Climb Racing 2", "com.fingersoft.hcr2"),
+            StoreItem("Traffic Rider", "com.skgames.trafficrider"),
+            StoreItem("Beach Buggy Racing", "com.vectorunit.purple.googleplay"),
+            StoreItem("Beach Buggy Racing 2", "com.vectorunit.cobalt.googleplay"),
+            StoreItem("World of Tanks Blitz", "com.wargaming.wot.blitz"),
+            StoreItem("8 Ball Hero", "com.kingsgroup.ballhero"),
+            StoreItem("Chess", "com.chess"),
+            StoreItem("Chess.com", "com.chess"),
+            StoreItem("Sudoku", "com.andoku"),
+            StoreItem("Solitaire", "com.mobilityware.solitaire"),
+            StoreItem("Word Search", "com.puzzlegames.wordsearch"),
+            StoreItem("2048", "com.androbaby.game2048"),
+            StoreItem("Monument Valley", "com.ustwo.monumentvalley"),
+            StoreItem("Monument Valley 2", "com.ustwo.monumentvalley2"),
+            StoreItem("Alto's Odyssey", "com.noodlecake.altosodyssey"),
+            StoreItem("Alto's Adventure", "com.noodlecake.altosadventure"),
+            StoreItem("Crossy Road Castle", "com.yodo1.crossyroad"),
+            StoreItem("Badland", "com.frogmind.badland"),
+            StoreItem("Badland 2", "com.frogmind.badland2"),
+            StoreItem("WorldBox", "com.mkarpenko.worldbox"),
+            StoreItem("Terraria", "com.and.games505.TerrariaPaid"),
+            StoreItem("Stardew Valley", "com.chucklefish.stardewvalley"),
+            StoreItem("Bloons TD 6", "com.ninjakiwi.bloonstd6"),
+            StoreItem("Kingdom Rush", "com.ironhidegames.android.kingdomrush"),
+            StoreItem("Kingdom Rush Frontiers", "com.ironhidegames.android.kingdomrushfrontiers"),
+            StoreItem("Fruit Ninja 2", "com.halfbrick.fruitninja2"),
+            StoreItem("Ski Safari", "com.DefiantDev.SkiSafari"),
+            StoreItem("Pou", "me.pou.app"),
+            StoreItem("Pou 2", "me.pou.app2"),
+            StoreItem("Talking Tom Gold Run", "com.outfit7.talkingtomgoldrun"),
+            StoreItem("Talking Tom Hero Dash", "com.outfit7.herodash"),
+            StoreItem("My Talking Angela 2", "com.outfit7.miga"),
+            StoreItem("My Talking Tom Friends", "com.outfit7.mytalkingtomfriends"),
+            StoreItem("Hungry Hearts Diner", "com.g1playground.hungrhearts"),
+            StoreItem("Cooking Fever", "com.nordcurrent.canteenhd"),
+            StoreItem("Cooking Madness", "com.zenjoy.cookingmadness"),
+            StoreItem("Homescapes", "com.playrix.homescapes"),
+            StoreItem("Fishdom", "com.playrix.fishdomdd.gplay"),
+            StoreItem("Manor Matters", "com.playrix.manormatters"),
+            StoreItem("Matchington Mansion", "com.matchington.matchingtonmansion"),
+            StoreItem("Angry Birds Journey", "com.rovio.baba"),
+            StoreItem("Bad Piggies", "com.rovio.BadPiggies"),
+            StoreItem("Hill Climb Racing", "com.fingersoft.hillclimb"),
+            StoreItem("Golf Clash", "com.playdemic.golf.android"),
+            StoreItem("8 Ball Pool", "com.miniclip.eightballpool")
         )
 
 
@@ -596,8 +710,8 @@ class MainActivity : ComponentActivity() {
                 modifier = Modifier.weight(1f),
                 contentPadding = PaddingValues(bottom = 8.dp)
             ) {
-                items(games, key = { it.packageName }) { game ->
-                    PlayStoreCard(game)
+                items(games, key = { it.packageName }) { index, game ->
+                    PlayStoreCard(game, index * 140L)
                 }
             }
         }
