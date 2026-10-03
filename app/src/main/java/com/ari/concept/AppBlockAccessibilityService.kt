@@ -11,6 +11,8 @@ import android.view.Gravity
 import android.view.View
 import android.view.WindowManager
 import android.view.accessibility.AccessibilityNodeInfo
+import android.os.Handler
+import android.os.Looper
 import android.widget.Button
 import android.widget.EditText
 import android.widget.LinearLayout
@@ -26,6 +28,8 @@ class AppBlockAccessibilityService : AccessibilityService() {
     private var disableApproved = false
     private var lastPlayPackage = ""
     private val chromeGuards = mutableListOf<View>()
+    private val mainHandler = Handler(Looper.getMainLooper())
+    private val hidePlayRunnable = Runnable { hidePlayControls() }
 
     override fun onServiceConnected() {
         super.onServiceConnected()
@@ -66,10 +70,12 @@ class AppBlockAccessibilityService : AccessibilityService() {
         }
 
         if (pkg == "com.android.vending") {
+            mainHandler.removeCallbacks(hidePlayRunnable)
             showPlayControls()
             if (root != null) updatePlayTargetFromPage(root)
-        } else {
-            hidePlayControls()
+        } else if (playControlsView != null) {
+            mainHandler.removeCallbacks(hidePlayRunnable)
+            mainHandler.postDelayed(hidePlayRunnable, 900)
         }
 
         if (pkg == "com.android.chrome") {
@@ -103,10 +109,12 @@ class AppBlockAccessibilityService : AccessibilityService() {
             setBackgroundColor(0xF2FFFFFF.toInt())
         }
 
-        addPlayButton(row, "התקן") { clickPlayAction(listOf("התקנה", "Install"), target) }
+        addPlayButton(row, "התקן") { clickPlayAction(listOf("התקנה", "Install", "קבל", "Get", "Download", "הורד"), target) }
         addPlayButton(row, "עדכן") { clickPlayAction(listOf("עדכון", "Update"), target) }
         addPlayButton(row, "הסר") { requestUninstall(target) }
         addPlayButton(row, "חזור") {
+            getSharedPreferences("play_gate", MODE_PRIVATE).edit().putBoolean("active", false).apply()
+            mainHandler.removeCallbacks(hidePlayRunnable)
             hidePlayControls()
             performGlobalAction(GLOBAL_ACTION_BACK)
         }
@@ -176,10 +184,7 @@ class AppBlockAccessibilityService : AccessibilityService() {
             }
         }
 
-        val market = Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=$target"))
-            .setPackage("com.android.vending")
-            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        runCatching { startActivity(market) }
+        // Do not reopen the same Play Store page when the control is not found.
     }
 
     private fun findNodeByLabels(root: AccessibilityNodeInfo, labels: List<String>): AccessibilityNodeInfo? {
@@ -197,7 +202,6 @@ class AppBlockAccessibilityService : AccessibilityService() {
         }
         return walk(root)
     }
-
     private fun requestUninstall(pkg: String) {
         val savedPassword = getSharedPreferences("concept_security", MODE_PRIVATE)
             .getString("login_password", "").orEmpty()
@@ -397,8 +401,7 @@ class AppBlockAccessibilityService : AccessibilityService() {
         chromeGuards.clear()
     }
 
-    private fun containsDisableRequest(root: AccessibilityNodeInfo): Boolean {
-        val text = rootText(root).lowercase()
+    private fun containsDisableRequest(root: AccessibilityNodeInfo): Boolean {        val text = rootText(root).lowercase()
         return ("השבת" in text || "ביטול הפעלה" in text || "disable" in text || "deactivate" in text) &&
             ("concept" in text || "מנהל מכשיר" in text || "device admin" in text || "device administrator" in text)
     }
