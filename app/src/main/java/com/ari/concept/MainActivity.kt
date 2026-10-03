@@ -332,11 +332,17 @@ class MainActivity : ComponentActivity() {
     @Composable
     private fun PlayStoreCard(item: StoreItem) {
         var bitmap by remember(item.packageName) { mutableStateOf(imageCache.get("play:" + item.packageName)) }
+        var playAvailable by remember(item.packageName) { mutableStateOf(bitmap != null) }
         val localIcon = remember(item.packageName) { installedDrawable(item.packageName) }
+        val blocked = getSharedPreferences("blocked", MODE_PRIVATE)
+            .getBoolean(item.packageName, false)
 
         LaunchedEffect(item.packageName) {
             val loaded = loadPlayIcon(item.packageName)
-            if (loaded != null) bitmap = loaded
+            if (loaded != null) {
+                bitmap = loaded
+                playAvailable = true
+            }
         }
 
         if (bitmap == null && localIcon == null) return
@@ -391,14 +397,16 @@ class MainActivity : ComponentActivity() {
                         .height(32.dp)
                 )
 
-                Button(
-                    onClick = { openPlay(item.packageName) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(34.dp),
-                    contentPadding = PaddingValues(horizontal = 2.dp, vertical = 0.dp)
-                ) {
-                    Text("התקנה", fontSize = 11.sp)
+                if (playAvailable && !blocked) {
+                    Button(
+                        onClick = { openPlay(item.packageName) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(34.dp),
+                        contentPadding = PaddingValues(horizontal = 2.dp, vertical = 0.dp)
+                    ) {
+                        Text("התקנה", fontSize = 11.sp)
+                    }
                 }
             }
         }
