@@ -204,57 +204,96 @@ class AppBlockAccessibilityService : AccessibilityService() {
     }
 
     private fun clickPlayAction(labels: List<String>, target: String) {
-        val root = windows.firstOrNull { it.root?.packageName?.toString() == "com.android.vending" }?.root
-            ?: return
+        // Play Store can rebuild its accessibility tree immediately after opening a page.
+        // Re-read the active window instead of relying on a stale WindowInfo root.
+        mainHandler.postDelayed({
+            val root = getRootInActiveWindow()
+                ?: windows.firstOrNull { it.root?.packageName?.toString() == "com.android.vending" }?.root
+                ?: return@postDelayed
 
-        val wanted = labels.map { it.lowercase() }
-        var actionNode: AccessibilityNodeInfo? = null
+            if (root.packageName?.toString() != "com.android.vending") return@postDelayed
 
-        fun walk(node: AccessibilityNodeInfo) {
-            if (actionNode != null) return
-            val text = (node.text?.toString().orEmpty() + " " +
-                node.contentDescription?.toString().orEmpty()).lowercase()
-            if (wanted.any { text == it || text.contains(it) }) {
-                if (node.isClickable) {
-                    actionNode = node
-                    return
+            val wanted = labels.map { it.trim().lowercase() }.filter { it.isNotEmpty() }
+            val candidates = mutableListOf<AccessibilityNodeInfo>()
+
+            fun walk(node: AccessibilityNodeInfo) {
+                val text = (node.text?.toString().orEmpty() + " " +
+                    node.contentDescription?.toString().orEmpty()).trim().lowercase()
+
+                if (wanted.any { text == it || text.contains(it) }) {
+                    candidates.add(node)
                 }
+
                 for (i in 0 until node.childCount) {
                     node.getChild(i)?.let(::walk)
                 }
-                if (actionNode == null) actionNode = node
-                return
             }
-            for (i in 0 until node.childCount) node.getChild(i)?.let(::walk)
-        }
 
-        walk(root)
-        val node = actionNode ?: return
+            walk(root)
 
-        var current = node
-        repeat(12) {
-            if (current.isClickable &&
-                current.performAction(AccessibilityNodeInfo.ACTION_CLICK)
-            ) return
-            current.parent?.let { current = it } ?: return@repeat
-        }
-
-        val bounds = Rect()
-        node.getBoundsInScreen(bounds)
-        if (bounds.width() > 0 && bounds.height() > 0) {
-            val x = bounds.centerX().toFloat()
-            val y = bounds.centerY().toFloat()
-            val path = Path().apply {
-                moveTo(x, y)
-                lineTo(x + 2f, y + 2f)
+            // Prefer an explicitly clickable match, then a clickable descendant,
+            // then the nearest clickable ancestor.
+            fun clickableAncestor(start: AccessibilityNodeInfo): AccessibilityNodeInfo? {
+                var current: AccessibilityNodeInfo? = start
+                repeat(15) {
+                    if (current?.isClickable == true) return current
+                    current = current?.parent
+                }
+                return null
             }
-            val gesture = GestureDescription.Builder()
-                .addStroke(GestureDescription.StrokeDescription(path, 0, 120))
-                .build()
-            runCatching {
-                dispatchGesture(gesture, object : GestureResultCallback() {}, null)
+
+            var actionNode: AccessibilityNodeInfo? =
+                candidates.firstOrNull { it.isClickable }
+
+            if (actionNode == null) {
+                for (candidate in candidates) {
+                    actionNode = clickableAncestor(candidate)
+                    if (actionNode != null) break
+                }
             }
-        }
+
+            if (actionNode == null) {
+                // Some Play Store versions put the visible label on a parent
+                // while the actual click target is one of its children.
+                fun findClickableDescendant(node: AccessibilityNodeInfo): AccessibilityNodeInfo? {
+                    if (node.isClickable) return node
+                    for (i in 0 until node.childCount) {
+                        node.getChild(i)?.let {
+                            val found = findClickableDescendant(it)
+                            if (found != null) return found
+                        }
+                    }
+                    return null
+                }
+                for (candidate in candidates) {
+                    actionNode = findClickableDescendant(candidate)
+                    if (actionNode != null) break
+                }
+            }
+
+            val node = actionNode ?: return@postDelayed
+
+            if (node.performAction(AccessibilityNodeInfo.ACTION_CLICK)) return@postDelayed
+
+            // Fallback for Play Store controls that expose bounds but reject
+            // ACTION_CLICK.
+            val bounds = Rect()
+            node.getBoundsInScreen(bounds)
+            if (bounds.width() > 0 && bounds.height() > 0) {
+                val x = bounds.centerX().toFloat()
+                val y = bounds.centerY().toFloat()
+                val path = Path().apply {
+                    moveTo(x, y)
+                    lineTo(x + 2f, y + 2f)
+                }
+                val gesture = GestureDescription.Builder()
+                    .addStroke(GestureDescription.StrokeDescription(path, 0, 120))
+                    .build()
+                runCatching {
+                    dispatchGesture(gesture, object : GestureResultCallback() {}, null)
+                }
+            }
+        }, 180L)
     }
 
     private fun findNodeByLabels(root: AccessibilityNodeInfo, labels: List<String>): AccessibilityNodeInfo? {
