@@ -188,7 +188,7 @@ class AppBlockAccessibilityService : AccessibilityService() {
                             setColor(Color.WHITE)
                             cornerRadius = 32f
                         }
-                        v.setTextColor(Color.rgb(25, 103, 210))
+                        (v as Button).setTextColor(Color.rgb(25, 103, 210))
                     }
                     android.view.MotionEvent.ACTION_UP,
                     android.view.MotionEvent.ACTION_CANCEL -> {
@@ -196,7 +196,7 @@ class AppBlockAccessibilityService : AccessibilityService() {
                             setColor(Color.rgb(25, 103, 210))
                             cornerRadius = 32f
                         }
-                        v.setTextColor(Color.WHITE)
+                        (v as Button).setTextColor(Color.WHITE)
                     }
                 }
                 false
