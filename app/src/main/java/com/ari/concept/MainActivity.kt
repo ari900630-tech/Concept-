@@ -154,6 +154,11 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         getSharedPreferences("concept_protection", MODE_PRIVATE).edit().putBoolean("enabled", true).apply()
+        val alwaysBlockedPackages = alwaysBlockedApps.map { it.packageName }.toSet()
+        getSharedPreferences("blocked", MODE_PRIVATE).edit().apply {
+            alwaysBlockedPackages.forEach { putBoolean(it, true) }
+            apply()
+        }
         val password = getSharedPreferences("concept_security", MODE_PRIVATE)
             .getString("login_password", null)
         val dpm = getSystemService(android.app.admin.DevicePolicyManager::class.java)
