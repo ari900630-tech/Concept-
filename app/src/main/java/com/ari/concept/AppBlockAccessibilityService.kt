@@ -54,7 +54,6 @@ class AppBlockAccessibilityService : AccessibilityService() {
         val siteLockActive = getSharedPreferences("chrome_lock", MODE_PRIVATE)
             .getBoolean("enabled", false)
         if (isHomePackage(pkg)) {
-            // מסך הבית נשאר רגיל. מסירים רק שכבת חסימה של אפליקציה שחזרה למסך הבית.
             hideBlockedAppBlock()
             if (siteLockActive) {
                 showHomeBlock()
@@ -104,10 +103,7 @@ class AppBlockAccessibilityService : AccessibilityService() {
         if (pkg.isBlank() || pkg == packageName ||
             pkg == "com.android.chrome" || pkg == "com.android.vending"
         ) return false
-
-        // החסימה נשמרת ב-SharedPreferences ואינה תלויה בהיסטוריית האפליקציות האחרונות.
-        return getSharedPreferences("blocked", MODE_PRIVATE)
-            .getBoolean(pkg, false)
+        return getSharedPreferences("blocked", MODE_PRIVATE).getBoolean(pkg, false)
     }
 
     private fun showPlayControls() {
@@ -184,6 +180,27 @@ class AppBlockAccessibilityService : AccessibilityService() {
                 setColor(Color.rgb(25, 103, 210))
                 cornerRadius = 32f
             }
+            // לבן בזמן לחיצה, וחזרה לכחול מיד לאחר שחרור.
+            setOnTouchListener { v, event ->
+                when (event.actionMasked) {
+                    android.view.MotionEvent.ACTION_DOWN -> {
+                        v.background = GradientDrawable().apply {
+                            setColor(Color.WHITE)
+                            cornerRadius = 32f
+                        }
+                        v.setTextColor(Color.rgb(25, 103, 210))
+                    }
+                    android.view.MotionEvent.ACTION_UP,
+                    android.view.MotionEvent.ACTION_CANCEL -> {
+                        v.background = GradientDrawable().apply {
+                            setColor(Color.rgb(25, 103, 210))
+                            cornerRadius = 32f
+                        }
+                        v.setTextColor(Color.WHITE)
+                    }
+                }
+                false
+            }
             setOnClickListener { action() }
         }
         parent.addView(
@@ -204,13 +221,10 @@ class AppBlockAccessibilityService : AccessibilityService() {
     }
 
     private fun clickPlayAction(labels: List<String>, target: String) {
-        // Play Store can rebuild its accessibility tree immediately after opening a page.
-        // Re-read the active window instead of relying on a stale WindowInfo root.
         mainHandler.postDelayed({
             val root = getRootInActiveWindow()
                 ?: windows.firstOrNull { it.root?.packageName?.toString() == "com.android.vending" }?.root
                 ?: return@postDelayed
-
             if (root.packageName?.toString() != "com.android.vending") return@postDelayed
 
             val wanted = labels.map { it.trim().lowercase() }.filter { it.isNotEmpty() }
@@ -219,20 +233,11 @@ class AppBlockAccessibilityService : AccessibilityService() {
             fun walk(node: AccessibilityNodeInfo) {
                 val text = (node.text?.toString().orEmpty() + " " +
                     node.contentDescription?.toString().orEmpty()).trim().lowercase()
-
-                if (wanted.any { text == it || text.contains(it) }) {
-                    candidates.add(node)
-                }
-
-                for (i in 0 until node.childCount) {
-                    node.getChild(i)?.let(::walk)
-                }
+                if (wanted.any { text == it || text.contains(it) }) candidates.add(node)
+                for (i in 0 until node.childCount) node.getChild(i)?.let(::walk)
             }
-
             walk(root)
 
-            // Prefer an explicitly clickable match, then a clickable descendant,
-            // then the nearest clickable ancestor.
             fun clickableAncestor(start: AccessibilityNodeInfo): AccessibilityNodeInfo? {
                 var current: AccessibilityNodeInfo? = start
                 repeat(15) {
@@ -242,9 +247,7 @@ class AppBlockAccessibilityService : AccessibilityService() {
                 return null
             }
 
-            var actionNode: AccessibilityNodeInfo? =
-                candidates.firstOrNull { it.isClickable }
-
+            var actionNode: AccessibilityNodeInfo? = candidates.firstOrNull { it.isClickable }
             if (actionNode == null) {
                 for (candidate in candidates) {
                     actionNode = clickableAncestor(candidate)
@@ -253,8 +256,6 @@ class AppBlockAccessibilityService : AccessibilityService() {
             }
 
             if (actionNode == null) {
-                // Some Play Store versions put the visible label on a parent
-                // while the actual click target is one of its children.
                 fun findClickableDescendant(node: AccessibilityNodeInfo): AccessibilityNodeInfo? {
                     if (node.isClickable) return node
                     for (i in 0 until node.childCount) {
@@ -272,11 +273,8 @@ class AppBlockAccessibilityService : AccessibilityService() {
             }
 
             val node = actionNode ?: return@postDelayed
-
             if (node.performAction(AccessibilityNodeInfo.ACTION_CLICK)) return@postDelayed
 
-            // Fallback for Play Store controls that expose bounds but reject
-            // ACTION_CLICK.
             val bounds = Rect()
             node.getBoundsInScreen(bounds)
             if (bounds.width() > 0 && bounds.height() > 0) {
@@ -301,16 +299,15 @@ class AppBlockAccessibilityService : AccessibilityService() {
         fun walk(node: AccessibilityNodeInfo): AccessibilityNodeInfo? {
             val text = (node.text?.toString().orEmpty() + " " + node.contentDescription?.toString().orEmpty()).lowercase()
             if (wanted.any { text == it || text.contains(it) }) return node
-            for (i in 0 until node.childCount) {
-                node.getChild(i)?.let { child ->
-                    val found = walk(child)
-                    if (found != null) return found
-                }
+            for (i in 0 until node.childCount) node.getChild(i)?.let { child ->
+                val found = walk(child)
+                if (found != null) return found
             }
             return null
         }
         return walk(root)
     }
+
     private fun requestUninstall(pkg: String) {
         val savedPassword = getSharedPreferences("concept_security", MODE_PRIVATE)
             .getString("login_password", "").orEmpty()
@@ -327,23 +324,16 @@ class AppBlockAccessibilityService : AccessibilityService() {
     }
 
     private fun ejectBlockedAppAndClearRecent(pkg: String) {
-        // מוציאים מיד מהאפליקציה החסומה ואז מסירים את המשימה שלה מ-Recent.
-        // ההגדרה ב-"blocked" נשארת, ולכן מחיקת ההיסטוריה לא מבטלת את החסימה.
         hideBlockedAppBlock()
         performGlobalAction(GLOBAL_ACTION_HOME)
         mainHandler.postDelayed({
             performGlobalAction(GLOBAL_ACTION_RECENTS)
-            mainHandler.postDelayed({
-                removeBlockedTaskFromRecents(pkg)
-            }, 350)
+            mainHandler.postDelayed({ removeBlockedTaskFromRecents(pkg) }, 350)
         }, 300)
     }
 
     private fun removeBlockedTaskFromRecents(pkg: String) {
-        val label = runCatching {
-            packageManager.getApplicationInfo(pkg, 0).loadLabel(packageManager).toString()
-        }.getOrDefault(pkg)
-
+        val label = runCatching { packageManager.getApplicationInfo(pkg, 0).loadLabel(packageManager).toString() }.getOrDefault(pkg)
         val lowered = label.lowercase()
         var boundsToDismiss: Rect? = null
 
@@ -352,12 +342,8 @@ class AppBlockAccessibilityService : AccessibilityService() {
             fun walk(node: AccessibilityNodeInfo) {
                 if (boundsToDismiss != null) return
                 val nodePkg = node.packageName?.toString().orEmpty()
-                val text = (node.text?.toString().orEmpty() + " " +
-                    node.contentDescription?.toString().orEmpty()).lowercase()
-
-                if (node.isVisibleToUser &&
-                    (nodePkg == pkg || text.contains(lowered))
-                ) {
+                val text = (node.text?.toString().orEmpty() + " " + node.contentDescription?.toString().orEmpty()).lowercase()
+                if (node.isVisibleToUser && (nodePkg == pkg || text.contains(lowered))) {
                     val bounds = Rect()
                     node.getBoundsInScreen(bounds)
                     if (bounds.width() > 140 && bounds.height() > 120) {
@@ -365,10 +351,7 @@ class AppBlockAccessibilityService : AccessibilityService() {
                         return
                     }
                 }
-
-                for (i in 0 until node.childCount) {
-                    node.getChild(i)?.let { walk(it) }
-                }
+                for (i in 0 until node.childCount) node.getChild(i)?.let { walk(it) }
             }
             walk(root)
         }
@@ -378,17 +361,11 @@ class AppBlockAccessibilityService : AccessibilityService() {
             val startX = bounds.centerX().toFloat()
             val startY = (bounds.bottom - 80).coerceAtLeast(bounds.top + 80).toFloat()
             val endY = (bounds.top - 120).toFloat()
-            val path = Path().apply {
-                moveTo(startX, startY)
-                lineTo(startX, endY)
-            }
+            val path = Path().apply { moveTo(startX, startY); lineTo(startX, endY) }
             val gesture = GestureDescription.Builder()
                 .addStroke(GestureDescription.StrokeDescription(path, 0, 350))
                 .build()
-
-            runCatching {
-                dispatchGesture(gesture, object : GestureResultCallback() {}, null)
-            }
+            runCatching { dispatchGesture(gesture, object : GestureResultCallback() {}, null) }
         }
 
         mainHandler.postDelayed({
@@ -399,7 +376,6 @@ class AppBlockAccessibilityService : AccessibilityService() {
 
     private fun showBlockedAppBlock() {
         if (blockedAppView != null || windowManager == null) return
-
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER
@@ -408,20 +384,8 @@ class AppBlockAccessibilityService : AccessibilityService() {
             isClickable = true
             isFocusable = true
         }
-
-        val title = TextView(this).apply {
-            text = "חסום"
-            textSize = 30f
-            gravity = Gravity.CENTER
-        }
-
-        val message = TextView(this).apply {
-            text = "הגישה לאפליקציה הזו חסומה"
-            textSize = 18f
-            gravity = Gravity.CENTER
-            setPadding(0, 12, 0, 24)
-        }
-
+        val title = TextView(this).apply { text = "חסום"; textSize = 30f; gravity = Gravity.CENTER }
+        val message = TextView(this).apply { text = "הגישה לאפליקציה הזו חסומה"; textSize = 18f; gravity = Gravity.CENTER; setPadding(0, 12, 0, 24) }
         val backApp = Button(this).apply {
             text = "חזור לאפליקציה"
             isAllCaps = false
@@ -432,24 +396,16 @@ class AppBlockAccessibilityService : AccessibilityService() {
                 })
             }
         }
-
         root.addView(title, LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
         root.addView(message, LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
         root.addView(backApp, LinearLayout.LayoutParams.MATCH_PARENT, 56.dp())
-
         val params = WindowManager.LayoutParams(
-            WindowManager.LayoutParams.MATCH_PARENT,
-            WindowManager.LayoutParams.MATCH_PARENT,
+            WindowManager.LayoutParams.MATCH_PARENT, WindowManager.LayoutParams.MATCH_PARENT,
             WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
-            WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
-            PixelFormat.TRANSLUCENT
+            WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN, PixelFormat.TRANSLUCENT
         )
         params.gravity = Gravity.CENTER
-
-        runCatching {
-            windowManager?.addView(root, params)
-            blockedAppView = root
-        }
+        runCatching { windowManager?.addView(root, params); blockedAppView = root }
     }
 
     private fun hideBlockedAppBlock() {
@@ -460,10 +416,7 @@ class AppBlockAccessibilityService : AccessibilityService() {
     private fun isHomePackage(pkg: String): Boolean {
         if (pkg == packageName || pkg == "com.android.chrome" || pkg == "com.android.vending") return false
         val home = homePackage ?: runCatching {
-            packageManager.resolveActivity(
-                Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME),
-                0
-            )?.activityInfo?.packageName
+            packageManager.resolveActivity(Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME), 0)?.activityInfo?.packageName
         }.getOrNull()
         return home != null && pkg == home
     }
@@ -478,31 +431,17 @@ class AppBlockAccessibilityService : AccessibilityService() {
             isClickable = true
             isFocusable = true
         }
-
-        val title = TextView(this).apply {
-            text = "חסום"
-            textSize = 30f
-            gravity = Gravity.CENTER
-        }
-        val message = TextView(this).apply {
-            text = "יציאה מהאתר החסום אינה זמינה"
-            textSize = 18f
-            gravity = Gravity.CENTER
-            setPadding(0, 12, 0, 24)
-        }
+        val title = TextView(this).apply { text = "חסום"; textSize = 30f; gravity = Gravity.CENTER }
+        val message = TextView(this).apply { text = "יציאה מהאתר החסום אינה זמינה"; textSize = 18f; gravity = Gravity.CENTER; setPadding(0, 12, 0, 24) }
         val backSite = Button(this).apply {
             text = "חזור לאתר"
             isAllCaps = false
             setOnClickListener {
                 hideHomeBlock()
-                val url = getSharedPreferences("chrome_lock", MODE_PRIVATE)
-                    .getString("allowed_url", null)
-                if (!url.isNullOrBlank()) {
-                    startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
-                        setPackage("com.android.chrome")
-                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    })
-                }
+                val url = getSharedPreferences("chrome_lock", MODE_PRIVATE).getString("allowed_url", null)
+                if (!url.isNullOrBlank()) startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
+                    setPackage("com.android.chrome"); addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                })
             }
         }
         val backApp = Button(this).apply {
@@ -510,32 +449,23 @@ class AppBlockAccessibilityService : AccessibilityService() {
             isAllCaps = false
             setOnClickListener {
                 hideHomeBlock()
-                getSharedPreferences("chrome_lock", MODE_PRIVATE).edit()
-                    .putBoolean("enabled", false)
-                    .apply()
+                getSharedPreferences("chrome_lock", MODE_PRIVATE).edit().putBoolean("enabled", false).apply()
                 startActivity(Intent(this@AppBlockAccessibilityService, MainActivity::class.java).apply {
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
                 })
             }
         }
-
         root.addView(title, LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
         root.addView(message, LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
         root.addView(backSite, LinearLayout.LayoutParams.MATCH_PARENT, 56.dp())
         root.addView(backApp, LinearLayout.LayoutParams.MATCH_PARENT, 56.dp())
-
         val params = WindowManager.LayoutParams(
-            WindowManager.LayoutParams.MATCH_PARENT,
-            WindowManager.LayoutParams.MATCH_PARENT,
+            WindowManager.LayoutParams.MATCH_PARENT, WindowManager.LayoutParams.MATCH_PARENT,
             WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
-            WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
-            PixelFormat.TRANSLUCENT
+            WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN, PixelFormat.TRANSLUCENT
         )
         params.gravity = Gravity.CENTER
-        runCatching {
-            windowManager?.addView(root, params)
-            homeBlockView = root
-        }
+        runCatching { windowManager?.addView(root, params); homeBlockView = root }
     }
 
     private fun hideHomeBlock() {
@@ -557,12 +487,9 @@ class AppBlockAccessibilityService : AccessibilityService() {
             val currentHost = runCatching { Uri.parse(currentUrl).host }.getOrNull()
             if (currentHost != null && !currentHost.equals(allowedHost, ignoreCase = true)) {
                 val allowedUrl = prefs.getString("allowed_url", null)
-                if (!allowedUrl.isNullOrBlank()) {
-                    startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(allowedUrl)).apply {
-                        setPackage("com.android.chrome")
-                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    })
-                }
+                if (!allowedUrl.isNullOrBlank()) startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(allowedUrl)).apply {
+                    setPackage("com.android.chrome"); addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                })
                 return
             }
         }
@@ -591,10 +518,7 @@ class AppBlockAccessibilityService : AccessibilityService() {
             val text = n.text?.toString()?.trim()
             val desc = n.contentDescription?.toString()?.trim()
             val value = text ?: desc
-            if (!value.isNullOrBlank() && (
-                value.startsWith("http://") || value.startsWith("https://") ||
-                value.contains("www.") || value.contains(".co.il")
-            )) {
+            if (!value.isNullOrBlank() && (value.startsWith("http://") || value.startsWith("https://") || value.contains("www.") || value.contains(".co.il"))) {
                 result = value
                 return
             }
@@ -623,8 +547,7 @@ class AppBlockAccessibilityService : AccessibilityService() {
             alpha = 0.01f
         }
         val params = WindowManager.LayoutParams(
-            bounds.width(),
-            bounds.height(),
+            bounds.width(), bounds.height(),
             WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
             WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
             PixelFormat.TRANSLUCENT
@@ -641,7 +564,8 @@ class AppBlockAccessibilityService : AccessibilityService() {
         chromeGuards.clear()
     }
 
-    private fun containsDisableRequest(root: AccessibilityNodeInfo): Boolean {        val text = rootText(root).lowercase()
+    private fun containsDisableRequest(root: AccessibilityNodeInfo): Boolean {
+        val text = rootText(root).lowercase()
         return ("השבת" in text || "ביטול הפעלה" in text || "disable" in text || "deactivate" in text) &&
             ("concept" in text || "מנהל מכשיר" in text || "device admin" in text || "device administrator" in text)
     }
@@ -649,10 +573,7 @@ class AppBlockAccessibilityService : AccessibilityService() {
     private fun containsUninstallRequest(root: AccessibilityNodeInfo): Boolean {
         val text = rootText(root).lowercase()
         val appLabel = applicationInfo.loadLabel(packageManager).toString().lowercase()
-        val uninstall = "הסר התקנה" in text ||
-            "הסר את ההתקנה" in text ||
-            "uninstall" in text ||
-            "remove app" in text
+        val uninstall = "הסר התקנה" in text || "הסר את ההתקנה" in text || "uninstall" in text || "remove app" in text
         return uninstall && (appLabel in text || "concept" in text)
     }
 
@@ -677,11 +598,7 @@ class AppBlockAccessibilityService : AccessibilityService() {
             isClickable = true
             isFocusable = true
         }
-        val title = TextView(this).apply {
-            text = titleText
-            textSize = 22f
-            gravity = Gravity.CENTER
-        }
+        val title = TextView(this).apply { text = titleText; textSize = 22f; gravity = Gravity.CENTER }
         val input = EditText(this).apply {
             hint = "הזן סיסמה"
             inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
@@ -690,8 +607,7 @@ class AppBlockAccessibilityService : AccessibilityService() {
         val button = Button(this).apply {
             text = "אישור"
             setOnClickListener {
-                val savedPassword = getSharedPreferences("concept_security", MODE_PRIVATE)
-                    .getString("login_password", "") ?: ""
+                val savedPassword = getSharedPreferences("concept_security", MODE_PRIVATE).getString("login_password", "") ?: ""
                 if (savedPassword.isNotBlank() && input.text.toString() == savedPassword) {
                     uninstallApproved = true
                     disableApproved = true
@@ -708,11 +624,9 @@ class AppBlockAccessibilityService : AccessibilityService() {
         root.addView(button, LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
         uninstallView = root
         val params = WindowManager.LayoutParams(
-            WindowManager.LayoutParams.MATCH_PARENT,
-            WindowManager.LayoutParams.MATCH_PARENT,
+            WindowManager.LayoutParams.MATCH_PARENT, WindowManager.LayoutParams.MATCH_PARENT,
             WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
-            WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
-            PixelFormat.TRANSLUCENT
+            WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN, PixelFormat.TRANSLUCENT
         )
         params.gravity = Gravity.CENTER
         windowManager?.addView(root, params)
