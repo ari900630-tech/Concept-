@@ -537,7 +537,7 @@ class MainActivity : ComponentActivity() {
                 if (p.size == 2) StoreItem(p[0], p[1]) else null
             }
 
-        val apps = (usefulApps.map { StoreItem(it.first, it.second) } + saved)
+        val apps = (usefulApps + saved)
             .distinctBy { it.packageName }
 
         var selectedCategory by rememberSaveable { mutableStateOf("הכול") }
