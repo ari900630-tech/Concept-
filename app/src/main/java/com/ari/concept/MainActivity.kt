@@ -685,16 +685,19 @@ class MainActivity : ComponentActivity() {
             } else {
                 LazyColumn(Modifier.weight(1f)) {
                     items(apps, key = { it.packageName }) { app ->
-                        val enabled = app.packageName in blocked
+                        val alwaysBlocked = alwaysBlockedApps.any { it.packageName == app.packageName }
+                        val enabled = alwaysBlocked || app.packageName in blocked
                         AppCard(
                             app,
                             onClick = {
-                                val newValue = !enabled
-                                prefs.edit().putBoolean(app.packageName, newValue).apply()
-                                blocked = if (newValue) blocked + app.packageName else blocked - app.packageName
+                                if (!alwaysBlocked) {
+                                    val newValue = !enabled
+                                    prefs.edit().putBoolean(app.packageName, newValue).apply()
+                                    blocked = if (newValue) blocked + app.packageName else blocked - app.packageName
+                                }
                             }
                         ) {
-                            Switch(checked = enabled, onCheckedChange = null)
+                            Switch(checked = enabled, enabled = !alwaysBlocked, onCheckedChange = null)
                         }
                     }
                 }
