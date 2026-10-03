@@ -18,6 +18,7 @@ import android.os.Looper
 import android.widget.Button
 import android.widget.EditText
 import android.widget.LinearLayout
+import android.widget.FrameLayout
 import android.widget.TextView
 
 class AppBlockAccessibilityService : AccessibilityService() {
@@ -112,6 +113,13 @@ class AppBlockAccessibilityService : AccessibilityService() {
         if (target.isBlank()) return
         lastPlayPackage = target
 
+        val overlay = FrameLayout(this).apply {
+            isClickable = true
+            isFocusable = false
+            setBackgroundColor(Color.TRANSPARENT)
+            setOnTouchListener { _, _ -> true }
+        }
+
         val row = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER
@@ -119,8 +127,12 @@ class AppBlockAccessibilityService : AccessibilityService() {
             setBackgroundColor(0xF2FFFFFF.toInt())
         }
 
-        addPlayButton(row, "התקן") { clickPlayAction(listOf("התקנה", "Install", "קבל", "Get", "Download", "הורד"), target) }
-        addPlayButton(row, "עדכן") { clickPlayAction(listOf("עדכון", "Update"), target) }
+        addPlayButton(row, "התקן") {
+            clickPlayAction(listOf("התקנה", "התקן", "Install", "קבל", "Get", "Download", "הורד"), target)
+        }
+        addPlayButton(row, "עדכן") {
+            clickPlayAction(listOf("עדכון", "עדכן", "Update"), target)
+        }
         addPlayButton(row, "הסר") { requestUninstall(target) }
         addPlayButton(row, "חזור") {
             getSharedPreferences("play_gate", MODE_PRIVATE).edit().putBoolean("active", false).apply()
@@ -129,19 +141,31 @@ class AppBlockAccessibilityService : AccessibilityService() {
             performGlobalAction(GLOBAL_ACTION_BACK)
         }
 
+        overlay.addView(
+            row,
+            FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+                Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
+            ).apply {
+                bottomMargin = 88.dp()
+            }
+        )
+
         val params = WindowManager.LayoutParams(
             WindowManager.LayoutParams.MATCH_PARENT,
-            WindowManager.LayoutParams.WRAP_CONTENT,
+            WindowManager.LayoutParams.MATCH_PARENT,
             WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
             WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
-                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
             PixelFormat.TRANSLUCENT
         )
-        params.gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
-        params.y = 88
+        params.gravity = Gravity.TOP or Gravity.START
+
         runCatching {
-            windowManager?.addView(row, params)
-            playControlsView = row
+            windowManager?.addView(overlay, params)
+            playControlsView = overlay
         }
     }
 
@@ -182,14 +206,27 @@ class AppBlockAccessibilityService : AccessibilityService() {
                 return
             }
             if (node != null) {
-                var parent = node.parent
-                repeat(5) {
-                    if (parent == null) return@repeat
-                    if (parent.isClickable) {
-                        parent.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+                var parent = node
+                repeat(8) {
+                    if (parent.isClickable && parent.performAction(AccessibilityNodeInfo.ACTION_CLICK)) {
                         return
                     }
-                    parent = parent.parent
+                    val next = parent.parent ?: return@repeat
+                    parent = next
+                }
+
+                val bounds = Rect()
+                node.getBoundsInScreen(bounds)
+                if (bounds.width() > 0 && bounds.height() > 0) {
+                    val x = bounds.centerX().toFloat()
+                    val y = bounds.centerY().toFloat()
+                    val path = Path().apply { moveTo(x, y) }
+                    val gesture = GestureDescription.Builder()
+                        .addStroke(GestureDescription.StrokeDescription(path, 0, 80))
+                        .build()
+                    runCatching {
+                        dispatchGesture(gesture, object : GestureResultCallback() {}, null)
+                    }
                 }
             }
         }
