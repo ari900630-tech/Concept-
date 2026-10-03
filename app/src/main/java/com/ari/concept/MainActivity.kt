@@ -775,9 +775,12 @@ class MainActivity : ComponentActivity() {
 
     @Composable
     fun SettingsScreen() {
-        Column(Modifier.fillMaxSize()) {
-            Spacer(Modifier.height(4.dp))
-
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp, vertical = 4.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
             val accessibilityOk = accessibilityEnabled()
             val adminOk = deviceAdminEnabled()
             val overlayOk = overlayEnabled()
@@ -787,8 +790,6 @@ class MainActivity : ComponentActivity() {
                 startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
             }
 
-            Spacer(Modifier.height(12.dp))
-
             PermissionButton("אישור שליטה על הטלפון", adminOk) {
                 val admin = ComponentName(this@MainActivity, ConceptDeviceAdminReceiver::class.java)
                 startActivity(Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN).apply {
@@ -796,8 +797,6 @@ class MainActivity : ComponentActivity() {
                     putExtra(DevicePolicyManager.EXTRA_ADD_EXPLANATION, "נדרש אישור שליטה על הטלפון כדי להגן על האפליקציה מפני הסרה.")
                 })
             }
-
-            Spacer(Modifier.height(12.dp))
 
             PermissionButton("הצגה מעל אפליקציות", overlayOk) {
                 startActivity(
@@ -808,13 +807,9 @@ class MainActivity : ComponentActivity() {
                 )
             }
 
-            Spacer(Modifier.height(12.dp))
-
             PermissionButton("נתוני שימוש", usageOk) {
                 startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
             }
-
-            Spacer(Modifier.height(12.dp))
 
             var password by remember {
                 mutableStateOf(
