@@ -309,8 +309,24 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun openPlay(pkg: String) {
-        if (!hasInternet()) return
-        startActivity(Intent(this, PlayGateActivity::class.java).putExtra("pkg", pkg))
+        if (pkg.isBlank()) return
+        runCatching {
+            startActivity(Intent(this, PlayGateActivity::class.java).putExtra("pkg", pkg))
+        }.recoverCatching {
+            startActivity(
+                Intent(
+                    Intent.ACTION_VIEW,
+                    Uri.parse("market://details?id=$pkg")
+                ).setPackage("com.android.vending")
+            )
+        }.recoverCatching {
+            startActivity(
+                Intent(
+                    Intent.ACTION_VIEW,
+                    Uri.parse("https://play.google.com/store/apps/details?id=$pkg&hl=he&gl=IL")
+                )
+            )
+        }
     }
 
     @Composable
