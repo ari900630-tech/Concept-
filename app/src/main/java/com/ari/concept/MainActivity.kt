@@ -480,6 +480,17 @@ class MainActivity : ComponentActivity() {
         online: Boolean,
         loadDelayMs: Long = 0L
     ) {
+        var installRequested by rememberSaveable(item.packageName) {
+            mutableStateOf(false)
+        }
+
+        val installed = remember(item.packageName) {
+            runCatching {
+                packageManager.getApplicationInfo(item.packageName, 0)
+                true
+            }.getOrDefault(false)
+        }
+
         Card(modifier = Modifier.padding(2.dp).fillMaxWidth()) {
             Column(
                 modifier = Modifier.fillMaxWidth().padding(5.dp),
@@ -494,11 +505,33 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxWidth().height(34.dp)
                 )
                 Button(
-                    onClick = { runCatching { openPlay(item.packageName) } },
+                    onClick = {
+                        if (installRequested && !installed) {
+                            // Play Store owns the actual download/install session.
+                            // We can cancel our pending request/gate and return to Concept;
+                            // Android does not expose a public API for another app's
+                            // Play Store download session.
+                            getSharedPreferences("play_gate", MODE_PRIVATE).edit()
+                                .putBoolean("active", false)
+                                .remove("target_pkg")
+                                .apply()
+                            installRequested = false
+                        } else {
+                            installRequested = true
+                            runCatching { openPlay(item.packageName) }
+                        }
+                    },
                     modifier = Modifier.fillMaxWidth().height(34.dp),
                     contentPadding = PaddingValues(0.dp)
                 ) {
-                    Text("התקנה", fontSize = 10.sp)
+                    Text(
+                        when {
+                            installed -> "פתח"
+                            installRequested -> "בטל"
+                            else -> "התקנה"
+                        },
+                        fontSize = 10.sp
+                    )
                 }
             }
         }
