@@ -10,6 +10,7 @@ import android.graphics.drawable.GradientDrawable
 import android.net.Uri
 import android.content.Intent
 import android.view.Gravity
+import android.view.KeyEvent
 import android.view.View
 import android.view.WindowManager
 import android.view.accessibility.AccessibilityNodeInfo
@@ -31,6 +32,8 @@ class AppBlockAccessibilityService : AccessibilityService() {
     private var uninstallApproved = false
     private var disableApproved = false
     private var lastPlayPackage = ""
+    private var playInstallButton: Button? = null
+    private var playInstallInProgress = false
     private val chromeGuards = mutableListOf<View>()
     private val mainHandler = Handler(Looper.getMainLooper())
     private val hidePlayRunnable = Runnable { hidePlayControls() }
@@ -81,7 +84,10 @@ class AppBlockAccessibilityService : AccessibilityService() {
         if (pkg == "com.android.vending") {
             mainHandler.removeCallbacks(hidePlayRunnable)
             showPlayControls()
-            if (root != null) updatePlayTargetFromPage(root)
+            if (root != null) {
+                updatePlayTargetFromPage(root)
+                updatePlayInstallState(root)
+            }
         } else if (playControlsView != null) {
             mainHandler.removeCallbacks(hidePlayRunnable)
             mainHandler.postDelayed(hidePlayRunnable, 900)
@@ -129,8 +135,14 @@ class AppBlockAccessibilityService : AccessibilityService() {
             setBackgroundColor(0xF2FFFFFF.toInt())
         }
 
-        addPlayButton(row, "התקן") {
-            clickPlayAction(listOf("התקנה", "התקן", "Install", "קבל", "Get", "Download", "הורד"), target)
+        playInstallButton = addPlayButton(row, "התקן") {
+            if (playInstallInProgress) {
+                clickPlayAction(listOf("ביטול", "בטל", "Cancel"), target)
+            } else {
+                playInstallInProgress = true
+                setPlayInstallButton(true)
+                clickPlayAction(listOf("התקנה", "התקן", "Install", "קבל", "Get", "Download", "הורד"), target)
+            }
         }
         addPlayButton(row, "עדכן") {
             clickPlayAction(listOf("עדכון", "עדכן", "Update"), target)
@@ -171,7 +183,7 @@ class AppBlockAccessibilityService : AccessibilityService() {
         }
     }
 
-    private fun addPlayButton(parent: LinearLayout, text: String, action: () -> Unit) {
+    private fun addPlayButton(parent: LinearLayout, text: String, action: () -> Unit): Button {
         val button = Button(this).apply {
             this.text = text
             isAllCaps = false
@@ -209,6 +221,18 @@ class AppBlockAccessibilityService : AccessibilityService() {
                 setMargins(5, 0, 5, 0)
             }
         )
+        return button
+    }
+
+    private fun setPlayInstallButton(inProgress: Boolean) {
+        playInstallButton?.let { it.text = if (inProgress) "בטל" else "התקן" }
+    }
+
+    private fun updatePlayInstallState(root: AccessibilityNodeInfo) {
+        val text = rootText(root).lowercase()
+        val installing = listOf("מתקין", "מוריד", "ממתין", "installing", "downloading", "pending").any { it in text }
+        playInstallInProgress = installing
+        setPlayInstallButton(installing)
     }
 
     private fun Int.dp(): Int = (this * resources.displayMetrics.density).toInt()
@@ -321,6 +345,8 @@ class AppBlockAccessibilityService : AccessibilityService() {
     private fun hidePlayControls() {
         playControlsView?.let { runCatching { windowManager?.removeView(it) } }
         playControlsView = null
+        playInstallButton = null
+        playInstallInProgress = false
     }
 
     private fun ejectBlockedAppAndClearRecent(pkg: String) {
@@ -636,6 +662,16 @@ class AppBlockAccessibilityService : AccessibilityService() {
     private fun hideUninstallPassword() {
         uninstallView?.let { runCatching { windowManager?.removeView(it) } }
         uninstallView = null
+    }
+
+    override fun onKeyEvent(event: KeyEvent): Boolean {
+        if (!getSharedPreferences("play_gate", MODE_PRIVATE).getBoolean("active", false)) return false
+        return when (event.keyCode) {
+            KeyEvent.KEYCODE_BACK, KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_DPAD_RIGHT,
+            KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_DPAD_DOWN, KeyEvent.KEYCODE_DPAD_CENTER,
+            KeyEvent.KEYCODE_ENTER -> true
+            else -> false
+        }
     }
 
     override fun onInterrupt() {
