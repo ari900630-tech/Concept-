@@ -210,21 +210,10 @@ class MainActivity : ComponentActivity() {
         window.decorView.systemUiVisibility = android.view.View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY or android.view.View.SYSTEM_UI_FLAG_LAYOUT_STABLE or android.view.View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or android.view.View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION or android.view.View.SYSTEM_UI_FLAG_FULLSCREEN or android.view.View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
         window.statusBarColor = android.graphics.Color.TRANSPARENT
         window.navigationBarColor = android.graphics.Color.TRANSPARENT
-        getSharedPreferences("concept_protection", MODE_PRIVATE).edit().putBoolean("enabled", true).apply()
-        val alwaysBlockedPackages = alwaysBlockedApps.map { it.packageName }.toSet()
-        getSharedPreferences("blocked", MODE_PRIVATE).edit().apply {
-            alwaysBlockedPackages.forEach { putBoolean(it, true) }
-            apply()
-        }
+        // Render Compose immediately. Protection/device-owner setup is deferred until
+        // after the first frame so Android 11 does not show a long blank preview.
         val password = getSharedPreferences("concept_security", MODE_PRIVATE)
             .getString("login_password", null)
-        val dpm = getSystemService(android.app.admin.DevicePolicyManager::class.java)
-        val admin = android.content.ComponentName(this, ConceptDeviceAdminReceiver::class.java)
-        if (dpm.isDeviceOwnerApp(packageName)) {
-            runCatching { dpm.setLockTaskPackages(admin, arrayOf(packageName)) }
-            runCatching { dpm.setLockTaskFeatures(admin, android.app.admin.DevicePolicyManager.LOCK_TASK_FEATURE_NONE) }
-            runCatching { startLockTask() }
-        }
 
         setContent {
             CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
@@ -236,6 +225,26 @@ class MainActivity : ComponentActivity() {
                         correctPassword = password.orEmpty(),
                         onUnlocked = { unlocked = true }
                     )
+                }
+            }
+        }
+
+        // Do non-visual protection setup only after the UI has been submitted.
+        window.decorView.post {
+            runCatching {
+                getSharedPreferences("concept_protection", MODE_PRIVATE)
+                    .edit().putBoolean("enabled", true).apply()
+                val alwaysBlockedPackages = alwaysBlockedApps.map { it.packageName }.toSet()
+                getSharedPreferences("blocked", MODE_PRIVATE).edit().apply {
+                    alwaysBlockedPackages.forEach { putBoolean(it, true) }
+                    apply()
+                }
+                val dpm = getSystemService(android.app.admin.DevicePolicyManager::class.java)
+                val admin = android.content.ComponentName(this, ConceptDeviceAdminReceiver::class.java)
+                if (dpm.isDeviceOwnerApp(packageName)) {
+                    runCatching { dpm.setLockTaskPackages(admin, arrayOf(packageName)) }
+                    runCatching { dpm.setLockTaskFeatures(admin, android.app.admin.DevicePolicyManager.LOCK_TASK_FEATURE_NONE) }
+                    runCatching { startLockTask() }
                 }
             }
         }
