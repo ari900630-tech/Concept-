@@ -335,7 +335,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private val imageCache = LruCache<String, Bitmap>(80)
+    private val imageCache = LruCache<String, Bitmap>(24)
 
     private fun installedDrawable(pkg: String): android.graphics.drawable.Drawable? =
         runCatching { packageManager.getApplicationInfo(pkg, PackageManager.GET_META_DATA).loadIcon(packageManager) }.getOrNull()
@@ -390,40 +390,36 @@ class MainActivity : ComponentActivity() {
         category: String,
         limit: Int = 1000
     ): List<StoreItem> = withContext(Dispatchers.IO) {
-        val results = coroutineScope {
-            queries.chunked(3).flatMap { batch ->
-                batch.map { query ->
-                async {
-                    runCatching {
-                        val encoded = java.net.URLEncoder.encode(query, "UTF-8")
-                        val url = "https://play.google.com/store/search?q=$encoded&c=$category&hl=en&gl=US"
-                        val connection = URL(url).openConnection() as HttpURLConnection
-                        connection.connectTimeout = 6000
-                        connection.readTimeout = 6000
-                        connection.instanceFollowRedirects = true
-                        connection.setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android 11)")
-                        val html = connection.inputStream.bufferedReader(Charsets.UTF_8).use { it.readText() }
-                        connection.disconnect()
+        val results = mutableListOf<StoreItem>()
+        val pattern = Regex(
+            """href="/store/apps/details\?id=([^"&]+)"[^>]*>([^<]*)</a>""",
+            RegexOption.IGNORE_CASE
+        )
 
-                        val pattern = Regex(
-                            """href="/store/apps/details\?id=([^"&]+)"[^>]*>([^<]*)</a>""",
-                            RegexOption.IGNORE_CASE
-                        )
-                        pattern.findAll(html).mapNotNull { match ->
-                            val pkg = match.groupValues.getOrNull(1)?.trim().orEmpty()
-                            val title = match.groupValues.getOrNull(2)?.trim().orEmpty()
-                            if (pkg.isBlank()) null
-                            else StoreItem(if (title.isBlank()) pkg else title, pkg)
-                        }.toList()
-                    }.getOrDefault(emptyList())
+        for (query in queries) {
+            if (results.distinctBy { it.packageName }.size >= limit) break
+            runCatching {
+                val encoded = java.net.URLEncoder.encode(query, "UTF-8")
+                val url = "https://play.google.com/store/search?q=$encoded&c=$category&hl=en&gl=US"
+                val connection = URL(url).openConnection() as HttpURLConnection
+                connection.connectTimeout = 5000
+                connection.readTimeout = 5000
+                connection.instanceFollowRedirects = true
+                connection.setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android 11)")
+                val html = connection.inputStream.bufferedReader(Charsets.UTF_8).use { it.readText() }
+                connection.disconnect()
+
+                pattern.findAll(html).forEach { match ->
+                    val pkg = match.groupValues.getOrNull(1)?.trim().orEmpty()
+                    val title = match.groupValues.getOrNull(2)?.trim().orEmpty()
+                    if (pkg.isNotBlank()) {
+                        results.add(StoreItem(if (title.isBlank()) pkg else title, pkg))
+                    }
                 }
-            }.awaitAll()
             }
         }
 
-        results.flatten()
-            .distinctBy { it.packageName }
-            .take(limit)
+        results.distinctBy { it.packageName }.take(limit)
     }
 
     private val appCatalogQueries = listOf(
@@ -507,7 +503,7 @@ class MainActivity : ComponentActivity() {
         var ready by remember { mutableStateOf(false) }
 
         LaunchedEffect(Unit) {
-            delay(550)
+            delay(1000)
             ready = true
         }
 
@@ -589,7 +585,7 @@ class MainActivity : ComponentActivity() {
         LaunchedEffect(online) {
             if (online && remoteApps.isEmpty() && !catalogLoading) {
                 catalogLoading = true
-                delay(1800)
+                delay(1000)
                 remoteApps = fetchPlayCatalog(appCatalogQueries, "apps", 1000)
                 catalogLoading = false
             }
@@ -768,7 +764,7 @@ class MainActivity : ComponentActivity() {
         LaunchedEffect(online) {
             if (online && remoteGames.isEmpty() && !catalogLoading) {
                 catalogLoading = true
-                delay(1800)
+                delay(1000)
                 remoteGames = fetchPlayCatalog(gameCatalogQueries, "GAME", 1000)
                 catalogLoading = false
             }
