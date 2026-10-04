@@ -50,6 +50,9 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import java.net.HttpURLConnection
@@ -382,6 +385,61 @@ class MainActivity : ComponentActivity() {
         }.getOrNull()
     }
 
+    private suspend fun fetchPlayCatalog(
+        queries: List<String>,
+        category: String,
+        limit: Int = 1000
+    ): List<StoreItem> = withContext(Dispatchers.IO) {
+        val results = coroutineScope {
+            queries.map { query ->
+                async {
+                    runCatching {
+                        val encoded = java.net.URLEncoder.encode(query, "UTF-8")
+                        val url = "https://play.google.com/store/search?q=$encoded&c=$category&hl=en&gl=US"
+                        val connection = URL(url).openConnection() as HttpURLConnection
+                        connection.connectTimeout = 6000
+                        connection.readTimeout = 6000
+                        connection.instanceFollowRedirects = true
+                        connection.setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android 11)")
+                        val html = connection.inputStream.bufferedReader(Charsets.UTF_8).use { it.readText() }
+                        connection.disconnect()
+
+                        val pattern = Regex(
+                            """href="/store/apps/details\?id=([^"&]+)"[^>]*>([^<]*)</a>""",
+                            RegexOption.IGNORE_CASE
+                        )
+                        pattern.findAll(html).mapNotNull { match ->
+                            val pkg = match.groupValues.getOrNull(1)?.trim().orEmpty()
+                            val title = match.groupValues.getOrNull(2)?.trim().orEmpty()
+                            if (pkg.isBlank()) null
+                            else StoreItem(if (title.isBlank()) pkg else title, pkg)
+                        }.toList()
+                    }.getOrDefault(emptyList())
+                }
+            }.awaitAll()
+        }
+
+        results.flatten()
+            .distinctBy { it.packageName }
+            .take(limit)
+    }
+
+    private val appCatalogQueries = listOf(
+        "productivity", "tools", "education", "business", "finance",
+        "shopping", "travel", "maps", "weather", "health", "fitness",
+        "photo", "video", "music", "communication", "news", "books",
+        "food", "lifestyle", "utilities", "office", "calendar", "email"
+    )
+
+    private val gameCatalogQueries = listOf(
+        "action games", "adventure games", "arcade games", "puzzle games",
+        "racing games", "sports games", "strategy games", "casual games",
+        "card games", "board games", "simulation games", "role playing games",
+        "educational games", "word games", "music games", "kids games",
+        "offline games", "multiplayer games", "family games", "classic games",
+        "football games", "car games", "chess games", "brain games"
+    )
+
     private suspend fun loadSiteIcon(siteUrl: String): Bitmap? {
         val host = Uri.parse(siteUrl).host ?: return null
         return loadBitmap("https://www.google.com/s2/favicons?domain=$host&sz=128", "site:$host")
@@ -519,12 +577,20 @@ class MainActivity : ComponentActivity() {
                 if (p.size == 2) StoreItem(p[0], p[1]) else null
             }
 
-        val apps = (usefulApps + saved)
-            .distinctBy { it.packageName }
+        var remoteApps by remember { mutableStateOf<List<StoreItem>>(emptyList()) }
+        var catalogLoading by remember { mutableStateOf(false) }
+        val apps = (usefulApps + remoteApps + saved).distinctBy { it.packageName }
 
         var selectedCategory by rememberSaveable { mutableStateOf("הכול") }
 
         val online = hasInternet()
+        LaunchedEffect(online) {
+            if (online && remoteApps.isEmpty() && !catalogLoading) {
+                catalogLoading = true
+                remoteApps = fetchPlayCatalog(appCatalogQueries, "apps", 1000)
+                catalogLoading = false
+            }
+        }
         Column(Modifier.fillMaxSize()) {
             if (!online) Text("האפליקציות כרגע אין אינטרנט, נסה שוב במועד מאוחר יותר", modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp), textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.error)
             LazyRow(
@@ -559,6 +625,11 @@ class MainActivity : ComponentActivity() {
                 else -> apps
             }
 
+            if (catalogLoading && remoteApps.isEmpty()) {
+                Box(Modifier.fillMaxWidth().padding(12.dp), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(modifier = Modifier.size(28.dp), strokeWidth = 3.dp)
+                }
+            }
             LazyVerticalGrid(
                 columns = GridCells.Fixed(4),
                 modifier = Modifier.weight(1f),
@@ -687,10 +758,24 @@ class MainActivity : ComponentActivity() {
                 if (p.size == 2) StoreItem(p[0], p[1]) else null
             }
 
-        val games = (baseGames + saved).distinctBy { it.packageName }
+        var remoteGames by remember { mutableStateOf<List<StoreItem>>(emptyList()) }
+        var catalogLoading by remember { mutableStateOf(false) }
+        val games = (baseGames + remoteGames + saved).distinctBy { it.packageName }
         val online = hasInternet()
+        LaunchedEffect(online) {
+            if (online && remoteGames.isEmpty() && !catalogLoading) {
+                catalogLoading = true
+                remoteGames = fetchPlayCatalog(gameCatalogQueries, "GAME", 1000)
+                catalogLoading = false
+            }
+        }
         Column(Modifier.fillMaxSize()) {
             if (!online) Text("המשחקים כרגע אין אינטרנט, נסה שוב במועד מאוחר יותר", modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp), textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.error)
+            if (catalogLoading && remoteGames.isEmpty()) {
+                Box(Modifier.fillMaxWidth().padding(12.dp), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(modifier = Modifier.size(28.dp), strokeWidth = 3.dp)
+                }
+            }
             LazyVerticalGrid(
                 columns = GridCells.Fixed(4),
                 modifier = Modifier.weight(1f),
