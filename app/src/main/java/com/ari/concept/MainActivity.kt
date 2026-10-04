@@ -358,41 +358,13 @@ class MainActivity : ComponentActivity() {
         }.getOrNull()
     }
 
-    private suspend fun loadPlayIcon(pkg: String): Bitmap? = withContext(Dispatchers.IO) {
-        val cacheKey = "play:$pkg"
-        imageCache.get(cacheKey)?.let { return@withContext it }
-        runCatching {
-            val page = URL("https://play.google.com/store/apps/details?id=$pkg&hl=en&gl=US").openConnection() as HttpURLConnection
-            page.connectTimeout = 12000
-            page.readTimeout = 12000
-            page.instanceFollowRedirects = true
-            page.setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android 11) AppleWebKit/537.36 Chrome/154 Mobile Safari/537.36")
-            page.setRequestProperty("Accept", "text/html,application/xhtml+xml")
-            page.setRequestProperty("Accept-Language", "en-US,en;q=0.9")
-            val html = page.inputStream.bufferedReader(Charsets.UTF_8).use { it.readText() }
-            page.disconnect()
-
-            val imageUrl = sequenceOf(
-                Regex("""property\\s*=\\s*["']og:image["'][^>]*content\\s*=\\s*["']([^"']+)["']""", RegexOption.IGNORE_CASE),
-                Regex("""content\\s*=\\s*["']([^"']+)["'][^>]*property\\s*=\\s*["']og:image["']""", RegexOption.IGNORE_CASE),
-                Regex("""<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']""", RegexOption.IGNORE_CASE),
-                Regex("""<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']""", RegexOption.IGNORE_CASE)
-            ).mapNotNull { it.find(html)?.groupValues?.getOrNull(1) }.firstOrNull()
-
-            val cleanedUrl = imageUrl
-                ?.replace("&amp;", "&")
-                ?.replace("\\/", "/")
-                ?.replace("&quot;", "\"")
-                ?: return@withContext null
-
-            loadBitmap(cleanedUrl, cacheKey)
-        }.getOrNull()
-    }
+    // Play Store icons are loaded only from installed apps. Remote icon scraping was
+    // removed because dozens of simultaneous HTTP/bitmap jobs could exhaust Android 11 memory.
 
     private suspend fun fetchPlayCatalog(
         queries: List<String>,
         category: String,
-        limit: Int = 1000
+        limit: Int = 60
     ): List<StoreItem> = withContext(Dispatchers.IO) {
         val results = mutableListOf<StoreItem>()
         val pattern = Regex(
@@ -400,14 +372,14 @@ class MainActivity : ComponentActivity() {
             RegexOption.IGNORE_CASE
         )
 
-        for (query in queries) {
+        for (query in queries.take(6)) {
             if (results.distinctBy { it.packageName }.size >= limit) break
             runCatching {
                 val encoded = java.net.URLEncoder.encode(query, "UTF-8")
                 val url = "https://play.google.com/store/search?q=$encoded&c=$category&hl=en&gl=US"
                 val connection = URL(url).openConnection() as HttpURLConnection
-                connection.connectTimeout = 5000
-                connection.readTimeout = 5000
+                connection.connectTimeout = 3000
+                connection.readTimeout = 4000
                 connection.instanceFollowRedirects = true
                 connection.setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android 11)")
                 val html = connection.inputStream.bufferedReader(Charsets.UTF_8).use { it.readText() }
@@ -451,13 +423,6 @@ class MainActivity : ComponentActivity() {
         var bitmap by remember(item.packageName) { mutableStateOf(imageCache.get("play:" + item.packageName)) }
         val localIcon = remember(item.packageName) { installedDrawable(item.packageName) }
         val online = hasInternet()
-
-        LaunchedEffect(item.packageName, online) {
-            if (online && bitmap == null) {
-                val loaded = loadPlayIcon(item.packageName)
-                if (loaded != null) bitmap = loaded
-            }
-        }
 
         val blocked = getSharedPreferences("blocked", MODE_PRIVATE).getBoolean(item.packageName, false)
 
@@ -589,8 +554,7 @@ class MainActivity : ComponentActivity() {
         LaunchedEffect(online) {
             if (online && remoteApps.isEmpty() && !catalogLoading) {
                 catalogLoading = true
-                delay(1000)
-                remoteApps = fetchPlayCatalog(appCatalogQueries, "apps", 1000)
+                remoteApps = fetchPlayCatalog(appCatalogQueries, "apps", 60)
                 catalogLoading = false
             }
         }
@@ -768,8 +732,7 @@ class MainActivity : ComponentActivity() {
         LaunchedEffect(online) {
             if (online && remoteGames.isEmpty() && !catalogLoading) {
                 catalogLoading = true
-                delay(1000)
-                remoteGames = fetchPlayCatalog(gameCatalogQueries, "GAME", 1000)
+                remoteGames = fetchPlayCatalog(gameCatalogQueries, "GAME", 60)
                 catalogLoading = false
             }
         }
