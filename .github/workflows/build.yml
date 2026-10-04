@@ -51,3 +51,5 @@ jobs:
           git add downloads/Concept-latest.apk
           git diff --cached --quiet || git commit -m "Publish latest APK download"
           git push
+
+# Rollback test build trigger.
