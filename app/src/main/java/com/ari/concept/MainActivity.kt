@@ -207,13 +207,11 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        window.decorView.systemUiVisibility = android.view.View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY or android.view.View.SYSTEM_UI_FLAG_LAYOUT_STABLE or android.view.View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or android.view.View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION or android.view.View.SYSTEM_UI_FLAG_FULLSCREEN or android.view.View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-        window.statusBarColor = android.graphics.Color.TRANSPARENT
-        window.navigationBarColor = android.graphics.Color.TRANSPARENT
         // Render Compose immediately. Protection/device-owner setup is deferred until
         // after the first frame so Android 11 does not show a long blank preview.
-        val password = getSharedPreferences("concept_security", MODE_PRIVATE)
-            .getString("login_password", null)
+        val password = runCatching {
+            getSharedPreferences("concept_security", MODE_PRIVATE).getString("login_password", null)
+        }.getOrNull()
 
         setContent {
             CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
@@ -244,7 +242,6 @@ class MainActivity : ComponentActivity() {
                 if (dpm.isDeviceOwnerApp(packageName)) {
                     runCatching { dpm.setLockTaskPackages(admin, arrayOf(packageName)) }
                     runCatching { dpm.setLockTaskFeatures(admin, android.app.admin.DevicePolicyManager.LOCK_TASK_FEATURE_NONE) }
-                    runCatching { startLockTask() }
                 }
             }
         }
