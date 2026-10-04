@@ -7,6 +7,8 @@ import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
@@ -281,7 +283,15 @@ class MainActivity : ComponentActivity() {
             .sortedBy { it.label.lowercase() }
     }
 
+    private fun hasInternet(): Boolean {
+        val cm = getSystemService(ConnectivityManager::class.java) ?: return false
+        val network = cm.activeNetwork ?: return false
+        val caps = cm.getNetworkCapabilities(network) ?: return false
+        return caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) && caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+    }
+
     private fun openPlay(pkg: String) {
+        if (!hasInternet()) return
         startActivity(Intent(this, PlayGateActivity::class.java).putExtra("pkg", pkg))
     }
 
@@ -379,45 +389,29 @@ class MainActivity : ComponentActivity() {
     @Composable
     private fun PlayStoreCard(item: StoreItem, loadDelayMs: Long = 0L) {
         var bitmap by remember(item.packageName) { mutableStateOf(imageCache.get("play:" + item.packageName)) }
-        var playAvailable by remember(item.packageName) { mutableStateOf(bitmap != null) }
         val localIcon = remember(item.packageName) { installedDrawable(item.packageName) }
-        val blocked = getSharedPreferences("blocked", MODE_PRIVATE)
-            .getBoolean(item.packageName, false)
+        val online = hasInternet()
 
-        LaunchedEffect(item.packageName, loadDelayMs) {
-            delay(loadDelayMs)
-            val loaded = loadPlayIcon(item.packageName)
-            if (loaded != null) {
-                bitmap = loaded
-                playAvailable = true
+        LaunchedEffect(item.packageName, online) {
+            if (online && bitmap == null) {
+                val loaded = loadPlayIcon(item.packageName)
+                if (loaded != null) bitmap = loaded
             }
         }
 
-        if (bitmap == null && localIcon == null) return
+        val blocked = getSharedPreferences("blocked", MODE_PRIVATE).getBoolean(item.packageName, false)
 
-        Card(
-            modifier = Modifier
-                .padding(4.dp)
-                .fillMaxWidth()
-        ) {
+        Card(modifier = Modifier.padding(4.dp).fillMaxWidth()) {
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(6.dp),
+                modifier = Modifier.fillMaxWidth().padding(6.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(68.dp),
+                    modifier = Modifier.fillMaxWidth().height(68.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     when {
-                        bitmap != null -> Image(
-                            bitmap!!.asImageBitmap(),
-                            contentDescription = item.label,
-                            modifier = Modifier.size(58.dp)
-                        )
+                        bitmap != null -> Image(bitmap!!.asImageBitmap(), item.label, Modifier.size(58.dp))
                         localIcon != null -> androidx.compose.ui.viewinterop.AndroidView(
                             factory = {
                                 android.widget.ImageView(it).apply {
@@ -427,34 +421,22 @@ class MainActivity : ComponentActivity() {
                             },
                             modifier = Modifier.size(58.dp)
                         )
-                        else -> Icon(
-                            Icons.Default.SportsEsports,
-                            contentDescription = item.label,
-                            modifier = Modifier.size(42.dp)
-                        )
+                        else -> Icon(Icons.Default.SportsEsports, item.label, Modifier.size(42.dp))
                     }
                 }
-
                 Text(
                     item.label,
                     maxLines = 2,
                     textAlign = TextAlign.Center,
                     style = MaterialTheme.typography.labelSmall,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(32.dp)
+                    modifier = Modifier.fillMaxWidth().height(32.dp)
                 )
-
-                if (playAvailable && !blocked) {
+                if (online && !blocked) {
                     Button(
                         onClick = { openPlay(item.packageName) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(34.dp),
+                        modifier = Modifier.fillMaxWidth().height(34.dp),
                         contentPadding = PaddingValues(horizontal = 2.dp, vertical = 0.dp)
-                    ) {
-                        Text("התקנה", fontSize = 11.sp)
-                    }
+                    ) { Text("התקנה", fontSize = 11.sp) }
                 }
             }
         }
@@ -542,7 +524,9 @@ class MainActivity : ComponentActivity() {
 
         var selectedCategory by rememberSaveable { mutableStateOf("הכול") }
 
+        val online = hasInternet()
         Column(Modifier.fillMaxSize()) {
+            if (!online) Text("האפליקציות כרגע אין אינטרנט, נסה שוב במועד מאוחר יותר", modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp), textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.error)
             LazyRow(
                 modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -704,15 +688,16 @@ class MainActivity : ComponentActivity() {
             }
 
         val games = (baseGames + saved).distinctBy { it.packageName }
-
+        val online = hasInternet()
         Column(Modifier.fillMaxSize()) {
+            if (!online) Text("המשחקים כרגע אין אינטרנט, נסה שוב במועד מאוחר יותר", modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp), textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.error)
             LazyVerticalGrid(
                 columns = GridCells.Fixed(4),
                 modifier = Modifier.weight(1f),
                 contentPadding = PaddingValues(bottom = 8.dp)
             ) {
-                itemsIndexed(games, key = { _, it -> it.packageName }) { index, game ->
-                    PlayStoreCard(game, index * 140L)
+                items(games, key = { it.packageName }) { game ->
+                    PlayStoreCard(game)
                 }
             }
         }
