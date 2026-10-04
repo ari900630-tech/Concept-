@@ -54,6 +54,16 @@ class AppBlockAccessibilityService : AccessibilityService() {
         val root = event?.source
             ?: windows.firstOrNull { it.root?.packageName?.toString() == pkg }?.root
 
+        // While the Play Store gate is active, prevent leaving Play Store with
+        // Home, Recents, notification/system UI, or another app. The four
+        // overlay controls remain the only way to navigate away.
+        val playGateActive = getSharedPreferences("play_gate", MODE_PRIVATE)
+            .getBoolean("active", false)
+        if (playGateActive && pkg != "com.android.vending" && pkg != packageName) {
+            reopenGatedPlayStore()
+            return
+        }
+
         val siteLockActive = getSharedPreferences("chrome_lock", MODE_PRIVATE)
             .getBoolean("enabled", false)
         if (isHomePackage(pkg)) {
@@ -112,6 +122,24 @@ class AppBlockAccessibilityService : AccessibilityService() {
         return getSharedPreferences("blocked", MODE_PRIVATE).getBoolean(pkg, false)
     }
 
+    private fun reopenGatedPlayStore() {
+        val target = getSharedPreferences("play_gate", MODE_PRIVATE)
+            .getString("target_pkg", "")?.trim().orEmpty()
+        if (target.isBlank()) return
+
+        mainHandler.removeCallbacks(hidePlayRunnable)
+        mainHandler.post {
+            runCatching {
+                startActivity(
+                    Intent(
+                        Intent.ACTION_VIEW,
+                        Uri.parse("market://details?id=$target")
+                    ).setPackage("com.android.vending")
+                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                )
+            }
+        }
+    }
     private fun showPlayControls() {
         if (playControlsView != null || windowManager == null) return
         val prefs = getSharedPreferences("play_gate", MODE_PRIVATE)
