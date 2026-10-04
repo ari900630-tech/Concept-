@@ -852,7 +852,7 @@ class MainActivity : ComponentActivity() {
         Column(Modifier.fillMaxSize()) {
             Box(Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
                 Text(
-                    "חסימת אפליקציות",
+                    "חסימה",
                     style = MaterialTheme.typography.headlineMedium,
                     modifier = Modifier.fillMaxWidth(),
                     textAlign = TextAlign.Right
