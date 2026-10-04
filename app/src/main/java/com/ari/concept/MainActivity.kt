@@ -391,7 +391,8 @@ class MainActivity : ComponentActivity() {
         limit: Int = 1000
     ): List<StoreItem> = withContext(Dispatchers.IO) {
         val results = coroutineScope {
-            queries.map { query ->
+            queries.chunked(3).flatMap { batch ->
+                batch.map { query ->
                 async {
                     runCatching {
                         val encoded = java.net.URLEncoder.encode(query, "UTF-8")
@@ -417,6 +418,7 @@ class MainActivity : ComponentActivity() {
                     }.getOrDefault(emptyList())
                 }
             }.awaitAll()
+            }
         }
 
         results.flatten()
@@ -587,6 +589,7 @@ class MainActivity : ComponentActivity() {
         LaunchedEffect(online) {
             if (online && remoteApps.isEmpty() && !catalogLoading) {
                 catalogLoading = true
+                delay(1800)
                 remoteApps = fetchPlayCatalog(appCatalogQueries, "apps", 1000)
                 catalogLoading = false
             }
@@ -765,6 +768,7 @@ class MainActivity : ComponentActivity() {
         LaunchedEffect(online) {
             if (online && remoteGames.isEmpty() && !catalogLoading) {
                 catalogLoading = true
+                delay(1800)
                 remoteGames = fetchPlayCatalog(gameCatalogQueries, "GAME", 1000)
                 catalogLoading = false
             }
