@@ -101,7 +101,20 @@ class MainActivity : ComponentActivity() {
         StoreItem("Messenger", "com.facebook.orca"),
         StoreItem("X", "com.twitter.android"),
         StoreItem("Snapchat", "com.snapchat.android"),
-        StoreItem("Telegram", "org.telegram.messenger")
+        StoreItem("Telegram", "org.telegram.messenger"),
+        StoreItem("YouTube Music", "com.google.android.apps.youtube.music"),
+        StoreItem("Reddit", "com.reddit.frontpage"),
+        StoreItem("Discord", "com.discord"),
+        StoreItem("Twitch", "tv.twitch.android.app"),
+        StoreItem("Spotify", "com.spotify.music"),
+        StoreItem("Pinterest", "com.pinterest"),
+        StoreItem("Threads", "com.instagram.barcelona"),
+        StoreItem("LinkedIn", "com.linkedin.android"),
+        StoreItem("Firefox", "org.mozilla.firefox"),
+        StoreItem("Edge", "com.microsoft.emmx"),
+        StoreItem("Brave", "com.brave.browser"),
+        StoreItem("Samsung Internet", "com.sec.android.app.sbrowser"),
+        StoreItem("Google Play Store", "com.android.vending")
     )
 
     private val usefulApps = listOf(
