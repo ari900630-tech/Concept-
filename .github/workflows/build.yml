@@ -1,4 +1,5 @@
 name: Android APK
+# Trigger rebuild for latest Concept fixes
 on:
   push:
     branches: [ main ]
