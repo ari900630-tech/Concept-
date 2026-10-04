@@ -405,20 +405,18 @@ class MainActivity : ComponentActivity() {
         return loadBitmap("https://www.google.com/s2/favicons?domain=$host&sz=128", "site:$host")
     }
     @Composable
-    private fun PlayStoreCard(item: StoreItem, loadDelayMs: Long = 0L) {
-        var bitmap by remember(item.packageName) { mutableStateOf(imageCache.get("play:" + item.packageName)) }
-        val localIcon = remember(item.packageName) { installedDrawable(item.packageName) }
-        val online = hasInternet()
-
-        LaunchedEffect(item.packageName, online) {
-            if (online && bitmap == null) {
-                val loaded = loadPlayIcon(item.packageName)
-                if (loaded != null) bitmap = loaded
-            }
+    private fun PlayStoreCard(
+        item: StoreItem,
+        online: Boolean,
+        loadDelayMs: Long = 0L
+    ) {
+        val blocked = remember(item.packageName) {
+            getSharedPreferences("blocked", MODE_PRIVATE)
+                .getBoolean(item.packageName, false)
         }
 
-        val blocked = getSharedPreferences("blocked", MODE_PRIVATE).getBoolean(item.packageName, false)
-
+        // Keep grid composition cheap on Android 11. Play Store scraping and
+        // PackageManager icon loading are intentionally not done per card here.
         Card(modifier = Modifier.padding(4.dp).fillMaxWidth()) {
             Column(
                 modifier = Modifier.fillMaxWidth().padding(6.dp),
@@ -428,19 +426,11 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxWidth().height(68.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    when {
-                        bitmap != null -> Image(bitmap!!.asImageBitmap(), item.label, Modifier.size(58.dp))
-                        localIcon != null -> androidx.compose.ui.viewinterop.AndroidView(
-                            factory = {
-                                android.widget.ImageView(it).apply {
-                                    setImageDrawable(localIcon)
-                                    scaleType = android.widget.ImageView.ScaleType.CENTER_INSIDE
-                                }
-                            },
-                            modifier = Modifier.size(58.dp)
-                        )
-                        else -> Icon(Icons.Default.SportsEsports, item.label, Modifier.size(42.dp))
-                    }
+                    Icon(
+                        Icons.Default.SportsEsports,
+                        contentDescription = item.label,
+                        modifier = Modifier.size(42.dp)
+                    )
                 }
                 Text(
                     item.label,
@@ -462,12 +452,7 @@ class MainActivity : ComponentActivity() {
 
     @Composable
     fun App() {
-        var ready by remember { mutableStateOf(false) }
-
-        LaunchedEffect(Unit) {
-            delay(550)
-            ready = true
-        }
+        var ready by remember { mutableStateOf(true) }
 
         if (!ready) {
             Box(
@@ -583,7 +568,7 @@ class MainActivity : ComponentActivity() {
                 contentPadding = PaddingValues(bottom = 8.dp)
             ) {
                 itemsIndexed(visibleApps, key = { _, it -> it.packageName }) { index, app ->
-                    PlayStoreCard(app, index * 140L)
+                    PlayStoreCard(app, online, index * 140L)
                 }
             }
         }
@@ -715,7 +700,7 @@ class MainActivity : ComponentActivity() {
                 contentPadding = PaddingValues(bottom = 8.dp)
             ) {
                 items(games, key = { it.packageName }) { game ->
-                    PlayStoreCard(game)
+                    PlayStoreCard(game, online)
                 }
             }
         }
