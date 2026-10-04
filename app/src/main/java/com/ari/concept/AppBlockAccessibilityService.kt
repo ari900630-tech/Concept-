@@ -237,23 +237,26 @@ class AppBlockAccessibilityService : AccessibilityService() {
                 setColor(Color.rgb(25, 103, 210))
                 cornerRadius = 32f
             }
-            // לבן בזמן לחיצה, וחזרה לכחול מיד לאחר שחרור.
+            // אפקט לחיצה לבן חל רק בארבעת כפתורי חנות Google Play.
             setOnTouchListener { v, event ->
+                val button = v as Button
                 when (event.actionMasked) {
                     android.view.MotionEvent.ACTION_DOWN -> {
-                        v.background = GradientDrawable().apply {
+                        button.background = GradientDrawable().apply {
                             setColor(Color.WHITE)
                             cornerRadius = 32f
                         }
-                        (v as Button).setTextColor(Color.rgb(25, 103, 210))
+                        button.setTextColor(Color.rgb(25, 103, 210))
+                        button.invalidate()
                     }
                     android.view.MotionEvent.ACTION_UP,
                     android.view.MotionEvent.ACTION_CANCEL -> {
-                        v.background = GradientDrawable().apply {
+                        button.background = GradientDrawable().apply {
                             setColor(Color.rgb(25, 103, 210))
                             cornerRadius = 32f
                         }
-                        (v as Button).setTextColor(Color.WHITE)
+                        button.setTextColor(Color.WHITE)
+                        button.invalidate()
                     }
                 }
                 false
