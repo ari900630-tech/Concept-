@@ -410,41 +410,29 @@ class MainActivity : ComponentActivity() {
         online: Boolean,
         loadDelayMs: Long = 0L
     ) {
-        val blocked = remember(item.packageName) {
-            getSharedPreferences("blocked", MODE_PRIVATE)
-                .getBoolean(item.packageName, false)
-        }
-
-        // Keep grid composition cheap on Android 11. Play Store scraping and
-        // PackageManager icon loading are intentionally not done per card here.
-        Card(modifier = Modifier.padding(4.dp).fillMaxWidth()) {
+        Card(modifier = Modifier.padding(2.dp).fillMaxWidth()) {
             Column(
-                modifier = Modifier.fillMaxWidth().padding(6.dp),
+                modifier = Modifier.fillMaxWidth().padding(5.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Box(
-                    modifier = Modifier.fillMaxWidth().height(68.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        Icons.Default.SportsEsports,
-                        contentDescription = item.label,
-                        modifier = Modifier.size(42.dp)
-                    )
-                }
+                Icon(
+                    Icons.Default.Apps,
+                    contentDescription = item.label,
+                    modifier = Modifier.size(42.dp)
+                )
                 Text(
                     item.label,
                     maxLines = 2,
                     textAlign = TextAlign.Center,
                     style = MaterialTheme.typography.labelSmall,
-                    modifier = Modifier.fillMaxWidth().height(32.dp)
+                    modifier = Modifier.fillMaxWidth().height(34.dp)
                 )
-                if (online && !blocked) {
-                    Button(
-                        onClick = { openPlay(item.packageName) },
-                        modifier = Modifier.fillMaxWidth().height(34.dp),
-                        contentPadding = PaddingValues(horizontal = 2.dp, vertical = 0.dp)
-                    ) { Text("התקנה", fontSize = 11.sp) }
+                Button(
+                    onClick = { openPlay(item.packageName) },
+                    modifier = Modifier.fillMaxWidth().height(34.dp),
+                    contentPadding = PaddingValues(0.dp)
+                ) {
+                    Text("התקנה", fontSize = 10.sp)
                 }
             }
         }
@@ -514,193 +502,54 @@ class MainActivity : ComponentActivity() {
 
     @Composable
     fun Apps() {
-        val saved = getSharedPreferences("concept_items", MODE_PRIVATE)
-            .getStringSet("apps", emptySet())
-            .orEmpty()
-            .mapNotNull {
-                val p = it.split("|", limit = 2)
-                if (p.size == 2) StoreItem(p[0], p[1]) else null
-            }
-
-        val apps = (usefulApps + saved)
-            .distinctBy { it.packageName }
-
-        var selectedCategory by rememberSaveable { mutableStateOf("הכול") }
-
-        val online = hasInternet()
-        Column(Modifier.fillMaxSize()) {
-            if (!online) Text("האפליקציות כרגע אין אינטרנט, נסה שוב במועד מאוחר יותר", modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp), textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.error)
-            LazyRow(
-                modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                reverseLayout = true
-            ) {
-                item {
-                    FilterChip(
-                        selected = selectedCategory == "חסומות תמיד",
-                        onClick = { selectedCategory = "חסומות תמיד" },
-                        label = { Text("🚫") }
-                    )
-                }
-                item {
-                    FilterChip(
-                        selected = selectedCategory == "לא חסומות",
-                        onClick = { selectedCategory = "לא חסומות" },
-                        label = { Text("✅") }
-                    )
-                }
-            }
-
-            val blockedPackages = getSharedPreferences("blocked", MODE_PRIVATE)
-                .all.filterValues { it is Boolean && it }.keys
-            val visibleApps = when (selectedCategory) {
-                "חסומות תמיד" -> alwaysBlockedApps
-                "לא חסומות" -> apps.filter {
-                    it.packageName !in blockedPackages &&
-                    it.packageName !in alwaysBlockedApps.map { item -> item.packageName }
-                }
-                else -> apps
-            }
-
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(4),
-                modifier = Modifier.weight(1f),
-                contentPadding = PaddingValues(bottom = 8.dp)
-            ) {
-                itemsIndexed(visibleApps, key = { _, it -> it.packageName }) { index, app ->
-                    PlayStoreCard(app, online, index * 140L)
-                }
-            }
+        val apps = remember {
+            usefulApps.distinctBy { it.packageName }
         }
+        StoreGrid(items = apps)
     }
 
     @Composable
     fun Games() {
-        val baseGames = listOf(
-            StoreItem("Roblox", "com.roblox.client"),
-            StoreItem("Toca Boca World", "com.tocaboca.tocabocaworld"),
-            StoreItem("EA SPORTS FC Mobile", "com.ea.gp.fifamobile"),
-            StoreItem("8 Ball Pool", "com.miniclip.eightballpool"),
-            StoreItem("Candy Crush Saga", "com.king.candycrushsaga"),
-            StoreItem("Pokémon GO", "com.nianticlabs.pokemongo"),
-            StoreItem("Township", "com.playrix.township"),
-            StoreItem("eFootball", "jp.konami.pesam"),
-            StoreItem("Royal Match", "com.dreamgames.royalmatch"),
-            StoreItem("Gardenscapes", "com.playrix.gardenscapes"),
-            StoreItem("Clash of Clans", "com.supercell.clashofclans"),
-            StoreItem("Brawl Stars", "com.supercell.brawlstars"),
-            StoreItem("Minecraft", "com.mojang.minecraftpe"),
-            StoreItem("Genshin Impact", "com.miHoYo.GenshinImpact"),
-            StoreItem("Toon Blast", "net.peakgames.toonblast"),
-            StoreItem("Subway Surfers", "com.kiloo.subwaysurf"),
-            StoreItem("Block Blast!", "com.block.juggle"),
-            StoreItem("Geometry Dash Lite", "com.robtopx.geometryjumplite"),
-            StoreItem("Hill Climb Racing", "com.fingersoft.hillclimb"),
-            StoreItem("Temple Run 2", "com.imangi.templerun2"),
-            StoreItem("Fruit Ninja", "com.halfbrick.fruitninjafree"),
-            StoreItem("Jetpack Joyride", "com.halfbrick.jetpackjoyride"),
-            StoreItem("Angry Birds 2", "com.rovio.baba"),
-            StoreItem("Cut the Rope", "com.zeptolab.ctr.ads"),
-            StoreItem("Crossy Road", "com.yodo1.crossyroad"),
-            StoreItem("Ludo King", "com.ludo.king"),
-            StoreItem("Car Parking Multiplayer", "com.olzhas.carparking.multyplayer"),
-            StoreItem("Dream League Soccer", "com.firsttouchgames.dls7"),
-            StoreItem("PUBG MOBILE", "com.tencent.ig"),
-            StoreItem("Call of Duty Mobile", "com.activision.callofduty.shooter"),
-            StoreItem("Clash Royale", "com.supercell.clashroyale"),
-            StoreItem("Pokémon TCG Pocket", "jp.pokemon.pokemontcgp"),
-            StoreItem("My Talking Tom 2", "com.outfit7.mytalkingtom2"),
-            StoreItem("Magic Tiles 3", "com.youmusic.magictiles"),
-            StoreItem("Wordscapes", "com.peoplefun.wordcross"),
-            StoreItem("Among Us", "com.innersloth.spacemafia"),
-            StoreItem("Stumble Guys", "com.kitkagames.fallbuddies"),
-            StoreItem("Temple Run", "com.imangi.templerun"),
-            StoreItem("Angry Birds Friends", "com.rovio.baba"),
-            StoreItem("Angry Birds Dream Blast", "com.rovio.dream"),
-            StoreItem("Sonic Dash", "com.sega.sonicdash"),
-            StoreItem("Sonic Forces", "com.sega.sonicforces"),
-            StoreItem("Mario Kart Tour", "com.nintendo.zaka"),
-            StoreItem("Super Mario Run", "com.nintendo.zara"),
-            StoreItem("Plants vs Zombies 2", "com.ea.game.pvz2_row"),
-            StoreItem("Plants vs Zombies", "com.ea.game.pvzfree_row"),
-            StoreItem("Fruit Ninja Classic", "com.halfbrick.fruitninjafree"),
-            StoreItem("Jetpack Joyride 2", "com.halfbrick.jetpackjoyride2"),
-            StoreItem("Hungry Shark Evolution", "com.fgol.HungrySharkEvolution"),
-            StoreItem("Hungry Shark World", "com.fgol.HungrySharkWorld"),
-            StoreItem("Shadow Fight 3", "com.nekki.shadowfight3"),
-            StoreItem("Shadow Fight 4", "com.nekki.shadowfightarena"),
-            StoreItem("Asphalt 9", "com.gameloft.android.ANMP.GloftA9HM"),
-            StoreItem("Asphalt 8", "com.gameloft.android.ANMP.GloftA8HM"),
-            StoreItem("Real Racing 3", "com.ea.games.r3_row"),
-            StoreItem("Need for Speed No Limits", "com.ea.game.nfs14_row"),
-            StoreItem("CSR Racing 2", "com.naturalmotion.customstreetracer2"),
-            StoreItem("Hill Climb Racing 2", "com.fingersoft.hcr2"),
-            StoreItem("Traffic Rider", "com.skgames.trafficrider"),
-            StoreItem("Beach Buggy Racing", "com.vectorunit.purple.googleplay"),
-            StoreItem("Beach Buggy Racing 2", "com.vectorunit.cobalt.googleplay"),
-            StoreItem("World of Tanks Blitz", "com.wargaming.wot.blitz"),
-            StoreItem("8 Ball Hero", "com.kingsgroup.ballhero"),
-            StoreItem("Chess", "com.chess"),
-            StoreItem("Chess.com", "com.chess"),
-            StoreItem("Sudoku", "com.andoku"),
-            StoreItem("Solitaire", "com.mobilityware.solitaire"),
-            StoreItem("Word Search", "com.puzzlegames.wordsearch"),
-            StoreItem("2048", "com.androbaby.game2048"),
-            StoreItem("Monument Valley", "com.ustwo.monumentvalley"),
-            StoreItem("Monument Valley 2", "com.ustwo.monumentvalley2"),
-            StoreItem("Alto's Odyssey", "com.noodlecake.altosodyssey"),
-            StoreItem("Alto's Adventure", "com.noodlecake.altosadventure"),
-            StoreItem("Crossy Road Castle", "com.yodo1.crossyroad"),
-            StoreItem("Badland", "com.frogmind.badland"),
-            StoreItem("Badland 2", "com.frogmind.badland2"),
-            StoreItem("WorldBox", "com.mkarpenko.worldbox"),
-            StoreItem("Terraria", "com.and.games505.TerrariaPaid"),
-            StoreItem("Stardew Valley", "com.chucklefish.stardewvalley"),
-            StoreItem("Bloons TD 6", "com.ninjakiwi.bloonstd6"),
-            StoreItem("Kingdom Rush", "com.ironhidegames.android.kingdomrush"),
-            StoreItem("Kingdom Rush Frontiers", "com.ironhidegames.android.kingdomrushfrontiers"),
-            StoreItem("Fruit Ninja 2", "com.halfbrick.fruitninja2"),
-            StoreItem("Ski Safari", "com.DefiantDev.SkiSafari"),
-            StoreItem("Pou", "me.pou.app"),
-            StoreItem("Pou 2", "me.pou.app2"),
-            StoreItem("Talking Tom Gold Run", "com.outfit7.talkingtomgoldrun"),
-            StoreItem("Talking Tom Hero Dash", "com.outfit7.herodash"),
-            StoreItem("My Talking Angela 2", "com.outfit7.miga"),
-            StoreItem("My Talking Tom Friends", "com.outfit7.mytalkingtomfriends"),
-            StoreItem("Hungry Hearts Diner", "com.g1playground.hungrhearts"),
-            StoreItem("Cooking Fever", "com.nordcurrent.canteenhd"),
-            StoreItem("Cooking Madness", "com.zenjoy.cookingmadness"),
-            StoreItem("Homescapes", "com.playrix.homescapes"),
-            StoreItem("Fishdom", "com.playrix.fishdomdd.gplay"),
-            StoreItem("Manor Matters", "com.playrix.manormatters"),
-            StoreItem("Matchington Mansion", "com.matchington.matchingtonmansion"),
-            StoreItem("Angry Birds Journey", "com.rovio.baba"),
-            StoreItem("Bad Piggies", "com.rovio.BadPiggies"),
-            StoreItem("Hill Climb Racing", "com.fingersoft.hillclimb"),
-            StoreItem("Golf Clash", "com.playdemic.golf.android"),
-            StoreItem("8 Ball Pool", "com.miniclip.eightballpool")
-        )
+        val games = remember {
+            listOf(
+                StoreItem("Roblox", "com.roblox.client"),
+                StoreItem("Minecraft", "com.mojang.minecraftpe"),
+                StoreItem("Candy Crush Saga", "com.king.candycrushsaga"),
+                StoreItem("Pokémon GO", "com.nianticlabs.pokemongo"),
+                StoreItem("Clash of Clans", "com.supercell.clashofclans"),
+                StoreItem("Brawl Stars", "com.supercell.brawlstars"),
+                StoreItem("Subway Surfers", "com.kiloo.subwaysurf"),
+                StoreItem("Temple Run 2", "com.imangi.templerun2"),
+                StoreItem("Fruit Ninja", "com.halfbrick.fruitninjafree"),
+                StoreItem("Among Us", "com.innersloth.spacemafia"),
+                StoreItem("Stumble Guys", "com.kitkagames.fallbuddies"),
+                StoreItem("8 Ball Pool", "com.miniclip.eightballpool"),
+                StoreItem("Hill Climb Racing", "com.fingersoft.hillclimb"),
+                StoreItem("Angry Birds 2", "com.rovio.baba"),
+                StoreItem("Ludo King", "com.ludo.king"),
+                StoreItem("Jetpack Joyride", "com.halfbrick.jetpackjoyride")
+            )
+        }
+        StoreGrid(items = games)
+    }
 
-
-        val saved = getSharedPreferences("concept_items", MODE_PRIVATE)
-            .getStringSet("games", emptySet())
-            .orEmpty()
-            .mapNotNull {
-                val p = it.split("|", limit = 2)
-                if (p.size == 2) StoreItem(p[0], p[1]) else null
-            }
-
-        val games = (baseGames + saved).distinctBy { it.packageName }
-        val online = hasInternet()
-        Column(Modifier.fillMaxSize()) {
-            if (!online) Text("המשחקים כרגע אין אינטרנט, נסה שוב במועד מאוחר יותר", modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp), textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.error)
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(4),
-                modifier = Modifier.weight(1f),
-                contentPadding = PaddingValues(bottom = 8.dp)
-            ) {
-                items(games, key = { it.packageName }) { game ->
-                    PlayStoreCard(game, online)
+    @Composable
+    private fun StoreGrid(items: List<StoreItem>) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(6.dp)
+        ) {
+            items(items.chunked(4)) { row ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    row.forEach { item ->
+                        Box(Modifier.weight(1f)) {
+                            PlayStoreCard(item = item, online = true)
+                        }
+                    }
+                    repeat(4 - row.size) { Spacer(Modifier.weight(1f)) }
                 }
             }
         }
