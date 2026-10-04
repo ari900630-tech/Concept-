@@ -1065,7 +1065,7 @@ class MainActivity : ComponentActivity() {
             enabled = !enabled,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text(if (enabled) "✓ $label" else label)
+            Text(label)
         }
     }
 
