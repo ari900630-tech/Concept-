@@ -1062,7 +1062,7 @@ class MainActivity : ComponentActivity() {
     private fun PermissionButton(label: String, enabled: Boolean, onClick: () -> Unit) {
         Button(
             onClick = onClick,
-            enabled = !enabled,
+            enabled = true,
             modifier = Modifier.fillMaxWidth()
         ) {
             Text(if (enabled) "✓ $label" else label)
