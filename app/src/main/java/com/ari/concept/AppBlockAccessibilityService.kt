@@ -34,6 +34,7 @@ class AppBlockAccessibilityService : AccessibilityService() {
     private var lastPlayPackage = ""
     private var playInstallButton: Button? = null
     private var playInstallInProgress = false
+    private var lastPlayReopenAt = 0L
     private val chromeGuards = mutableListOf<View>()
     private val mainHandler = Handler(Looper.getMainLooper())
     private val hidePlayRunnable = Runnable { hidePlayControls() }
@@ -127,6 +128,9 @@ class AppBlockAccessibilityService : AccessibilityService() {
             .getString("target_pkg", "")?.trim().orEmpty()
         if (target.isBlank()) return
 
+        val now = android.os.SystemClock.elapsedRealtime()
+        if (now - lastPlayReopenAt < 1500L) return
+        lastPlayReopenAt = now
         mainHandler.removeCallbacks(hidePlayRunnable)
         mainHandler.post {
             runCatching {
@@ -259,8 +263,10 @@ class AppBlockAccessibilityService : AccessibilityService() {
     private fun updatePlayInstallState(root: AccessibilityNodeInfo) {
         val text = rootText(root).lowercase()
         val installing = listOf("מתקין", "מוריד", "ממתין", "installing", "downloading", "pending").any { it in text }
-        playInstallInProgress = installing
-        setPlayInstallButton(installing)
+        if (playInstallInProgress || installing) {
+            playInstallInProgress = true
+            setPlayInstallButton(true)
+        }
     }
 
     private fun Int.dp(): Int = (this * resources.displayMetrics.density).toInt()
