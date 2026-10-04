@@ -454,7 +454,7 @@ class MainActivity : ComponentActivity() {
     fun App() {
         // Safe startup screen: no network, PackageManager, bitmap, or large grid
         // is composed until the user explicitly selects a section.
-        var tab by rememberSaveable { mutableIntStateOf(0) }
+        var tab by rememberSaveable { mutableIntStateOf(-1) }
 
         val labels = listOf("משחקים", "אפליקציות", "אתרים", "חסימה", "הגדרות")
         val icons = listOf(
@@ -485,6 +485,23 @@ class MainActivity : ComponentActivity() {
                     .padding(padding)
             ) {
                 when (tab) {
+                    -1 -> {
+                        Column(
+                            modifier = Modifier.fillMaxSize().padding(24.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            Icon(
+                                Icons.Default.Apps,
+                                contentDescription = "Concept",
+                                modifier = Modifier.size(72.dp)
+                            )
+                            Spacer(Modifier.height(16.dp))
+                            Text("Concept", style = MaterialTheme.typography.headlineLarge)
+                            Spacer(Modifier.height(8.dp))
+                            Text("בחר קטגוריה למטה", style = MaterialTheme.typography.bodyLarge)
+                        }
+                    }
                     0 -> Games()
                     1 -> Apps()
                     2 -> Sites()
