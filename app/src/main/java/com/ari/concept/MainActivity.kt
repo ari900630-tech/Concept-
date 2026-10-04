@@ -335,7 +335,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private val imageCache = LruCache<String, Bitmap>(24)
+    private val imageCache = LruCache<String, Bitmap>(8)
 
     private fun installedDrawable(pkg: String): android.graphics.drawable.Drawable? =
         runCatching { packageManager.getApplicationInfo(pkg, PackageManager.GET_META_DATA).loadIcon(packageManager) }.getOrNull()
@@ -347,7 +347,11 @@ class MainActivity : ComponentActivity() {
             connection.connectTimeout = 8000
             connection.readTimeout = 8000
             connection.setRequestProperty("User-Agent", "Mozilla/5.0")
-            val bitmap = connection.inputStream.use { BitmapFactory.decodeStream(it) }
+            val options = BitmapFactory.Options().apply {
+                inPreferredConfig = Bitmap.Config.RGB_565
+                inSampleSize = 4
+            }
+            val bitmap = connection.inputStream.use { BitmapFactory.decodeStream(it, null, options) }
             connection.disconnect()
             if (bitmap != null) imageCache.put(cacheKey, bitmap)
             bitmap
