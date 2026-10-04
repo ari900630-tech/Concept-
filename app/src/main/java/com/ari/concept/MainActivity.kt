@@ -452,28 +452,10 @@ class MainActivity : ComponentActivity() {
 
     @Composable
     fun App() {
-        var ready by remember { mutableStateOf(true) }
+        // Safe startup screen: no network, PackageManager, bitmap, or large grid
+        // is composed until the user explicitly selects a section.
+        var tab by rememberSaveable { mutableIntStateOf(0) }
 
-        if (!ready) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Box(Modifier.size(112.dp), contentAlignment = Alignment.Center) {
-                    Image(
-                        painter = painterResource(id = R.drawable.ic_launcher),
-                        contentDescription = "Concept",
-                        modifier = Modifier.size(68.dp)                    )
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(104.dp),
-                        strokeWidth = 3.dp
-                    )
-                }
-            }
-            return
-        }
-
-        var tab by remember { mutableIntStateOf(0) }
         val labels = listOf("משחקים", "אפליקציות", "אתרים", "חסימה", "הגדרות")
         val icons = listOf(
             Icons.Default.SportsEsports,
@@ -497,17 +479,18 @@ class MainActivity : ComponentActivity() {
                 }
             }
         ) { padding ->
-            Box(Modifier.fillMaxSize().padding(padding)) {
-                Column(Modifier.fillMaxSize().padding(12.dp)) {
-                    when (tab) {
-                        0 -> Games()
-                        1 -> Apps()
-                        2 -> Sites()
-                        3 -> BlockApps()
-                        4 -> SettingsScreen()
-                    }
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+            ) {
+                when (tab) {
+                    0 -> Games()
+                    1 -> Apps()
+                    2 -> Sites()
+                    3 -> BlockApps()
+                    4 -> SettingsScreen()
                 }
-
             }
         }
     }
