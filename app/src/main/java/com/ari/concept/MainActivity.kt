@@ -434,9 +434,12 @@ class MainActivity : ComponentActivity() {
             page.setRequestProperty("User-Agent", "Mozilla/5.0")
             val html = page.inputStream.bufferedReader().use { it.readText() }
             page.disconnect()
-            val match = Regex("""<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']""", RegexOption.IGNORE_CASE).find(html)
-                ?: Regex("""<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']""", RegexOption.IGNORE_CASE).find(html)
-            val imageUrl = match?.groupValues?.getOrNull(1)?.replace("&amp;", "&") ?: return@runCatching null
+            val matches = listOf(
+                Regex("""<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']""", RegexOption.IGNORE_CASE),
+                Regex("""<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']""", RegexOption.IGNORE_CASE)
+            )
+            val imageUrl = matches.asSequence().mapNotNull { it.find(html)?.groupValues?.getOrNull(1) }
+                .firstOrNull()?.replace("&amp;", "&") ?: return@runCatching null
             val image = URL(imageUrl).openConnection() as HttpURLConnection
             image.connectTimeout = 3000
             image.readTimeout = 3000
@@ -447,6 +450,7 @@ class MainActivity : ComponentActivity() {
             bmp
         }.getOrNull()
     }
+
 
     @Composable
     private fun PlayStoreCard(
