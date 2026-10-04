@@ -173,6 +173,8 @@ class AppBlockAccessibilityService : AccessibilityService() {
         playInstallButton = addPlayButton(row, "התקן") {
             if (playInstallInProgress) {
                 clickPlayAction(listOf("ביטול", "בטל", "Cancel"), target)
+                playInstallInProgress = false
+                setPlayInstallButton(false)
             } else {
                 playInstallInProgress = true
                 setPlayInstallButton(true)
