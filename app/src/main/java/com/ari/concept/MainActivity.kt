@@ -202,6 +202,127 @@ class MainActivity : ComponentActivity() {
             StoreItem("Kindle", "com.amazon.kindle")
     )
 
+    private val moreApps = listOf(
+        StoreItem("Google Play Games", "com.google.android.play.games"),
+        StoreItem("Google One", "com.google.android.apps.subscriptions.red"),
+        StoreItem("Google Gemini", "com.google.android.apps.bard"),
+        StoreItem("Google Earth", "com.google.earth"),
+        StoreItem("Google Clock", "com.google.android.deskclock"),
+        StoreItem("Google Contacts", "com.google.android.contacts"),
+        StoreItem("Google Messages", "com.google.android.apps.messaging"),
+        StoreItem("Google Phone", "com.google.android.dialer"),
+        StoreItem("Google Play Books", "com.google.android.apps.books"),
+        StoreItem("Brave", "com.brave.browser"),
+        StoreItem("DuckDuckGo", "com.duckduckgo.mobile.android"),
+        StoreItem("Samsung Internet", "com.sec.android.app.sbrowser"),
+        StoreItem("Microsoft Edge", "com.microsoft.emmx"),
+        StoreItem("Microsoft SwiftKey", "com.touchtype.swiftkey"),
+        StoreItem("Yahoo Mail", "com.yahoo.mobile.client.android.mail"),
+        StoreItem("Proton Mail", "ch.protonmail.android"),
+        StoreItem("Proton Drive", "ch.proton.android.drive"),
+        StoreItem("MEGA", "mega.privacy.android.app"),
+        StoreItem("Box", "com.box.android"),
+        StoreItem("Moodle", "com.moodle.moodlemobile"),
+        StoreItem("TED", "com.ted.android"),
+        StoreItem("Pocket Casts", "au.com.shiftyjelly.pocketcasts"),
+        StoreItem("TuneIn Radio", "tunein.player"),
+        StoreItem("Deezer", "deezer.android.app"),
+        StoreItem("SoundCloud", "com.soundcloud.android"),
+        StoreItem("Adobe Express", "com.adobe.spark.post"),
+        StoreItem("VSCO", "com.vsco.cam"),
+        StoreItem("Flickr", "com.flickr.android"),
+        StoreItem("Remini", "com.bigwinepot.nwdn.international"),
+        StoreItem("PhotoRoom", "com.photoroom.app"),
+        StoreItem("KineMaster", "com.nexstreaming.app.kinemasterfree"),
+        StoreItem("VN Video Editor", "com.frontrow.vlog"),
+        StoreItem("PowerDirector", "com.cyberlink.powerdirector.DRA140225_01"),
+        StoreItem("Xodo PDF", "com.xodo.pdf.reader"),
+        StoreItem("Foxit PDF", "com.foxit.mobile.pdf.lite"),
+        StoreItem("CamScanner", "com.intsig.camscanner"),
+        StoreItem("Any.do", "com.anydo"),
+        StoreItem("TickTick", "com.ticktick.task"),
+        StoreItem("Monday.com", "com.monday.monday"),
+        StoreItem("GitHub", "com.github.android"),
+        StoreItem("Termux", "com.termux"),
+        StoreItem("Pydroid 3", "ru.iiec.pydroid3"),
+        StoreItem("MX Player", "com.mxtech.videoplayer.ad"),
+        StoreItem("Kodi", "org.xbmc.kodi"),
+        StoreItem("Etsy", "com.etsy.android"),
+        StoreItem("Walmart", "com.walmart.android"),
+        StoreItem("Target", "com.target.ui"),
+        StoreItem("Uber Eats", "com.ubercab.eats"),
+        StoreItem("DoorDash", "com.dd.doordash"),
+        StoreItem("Gett", "com.gettaxi.android"),
+        StoreItem("Venmo", "com.venmo"),
+        StoreItem("Cash App", "com.squareup.cash"),
+        StoreItem("LastPass", "com.lastpass.lpandroid"),
+        StoreItem("Authy", "com.authy.authy"),
+        StoreItem("NordVPN", "com.nordvpn.android"),
+        StoreItem("Proton VPN", "ch.protonvpn.android"),
+        StoreItem("Speedtest", "org.zwanoo.android.speedtest"),
+        StoreItem("The Weather Channel", "com.weather.Weather"),
+        StoreItem("Nike Run Club", "com.nike.plusgps")
+    )
+
+    private val moreGames = listOf(
+        StoreItem("Angry Birds 2", "com.rovio.baba"),
+        StoreItem("Angry Birds Friends", "com.rovio.angrybirdsfriends"),
+        StoreItem("Angry Birds Dream Blast", "com.rovio.dream"),
+        StoreItem("Hill Climb Racing", "com.fingersoft.hillclimb"),
+        StoreItem("Hill Climb Racing 2", "com.fingersoft.hcr2"),
+        StoreItem("Subway Surfers", "com.kiloo.subwaysurf"),
+        StoreItem("Temple Run 2", "com.imangi.templerun2"),
+        StoreItem("Jetpack Joyride", "com.halfbrick.jetpackjoyride"),
+        StoreItem("Fruit Ninja", "com.halfbrick.fruitninjafree"),
+        StoreItem("Crossy Road", "com.ponycan.crossyroad"),
+        StoreItem("Plants vs Zombies", "com.ea.game.pvzfree_row"),
+        StoreItem("Plants vs Zombies 2", "com.ea.game.pvz2_row"),
+        StoreItem("Clash of Clans", "com.supercell.clashofclans"),
+        StoreItem("Clash Royale", "com.supercell.clashroyale"),
+        StoreItem("Brawl Stars", "com.supercell.brawlstars"),
+        StoreItem("Hay Day", "com.supercell.hayday"),
+        StoreItem("Boom Beach", "com.supercell.boombeach"),
+        StoreItem("Minecraft", "com.mojang.minecraftpe"),
+        StoreItem("Terraria", "com.and.games505.TerrariaPaid"),
+        StoreItem("Stardew Valley", "com.chucklefish.stardewvalley"),
+        StoreItem("Monument Valley", "com.ustwo.monumentvalley"),
+        StoreItem("Alto's Adventure", "com.noodlecake.altosadventure"),
+        StoreItem("Alto's Odyssey", "com.noodlecake.altosodyssey"),
+        StoreItem("Wordscapes", "com.peoplefun.wordcross"),
+        StoreItem("2048", "com.androbaby.game2048"),
+        StoreItem("Lichess", "org.lichess.mobileapp"),
+        StoreItem("Monopoly GO", "com.scopely.monopolygo"),
+        StoreItem("UNO", "com.matteljv.uno"),
+        StoreItem("Asphalt 8", "com.gameloft.android.ANMP.GloftA8HM"),
+        StoreItem("Asphalt 9", "com.gameloft.android.ANMP.GloftA9HM"),
+        StoreItem("Need for Speed No Limits", "com.ea.game.nfs14_row"),
+        StoreItem("Real Racing 3", "com.ea.games.r3_row"),
+        StoreItem("CSR Racing 2", "com.naturalmotion.customstreetracer2"),
+        StoreItem("Traffic Rider", "com.skgames.trafficrider"),
+        StoreItem("Traffic Racer", "com.skgames.trafficracer"),
+        StoreItem("Beach Buggy Racing", "com.vectorunit.purple"),
+        StoreItem("PUBG MOBILE", "com.tencent.ig"),
+        StoreItem("Call of Duty Mobile", "com.activision.callofduty.shooter"),
+        StoreItem("Free Fire", "com.dts.freefireth"),
+        StoreItem("Zombie Tsunami", "net.mobigame.zombietsunami"),
+        StoreItem("Zombie Catchers", "fi.twomenandadog.zombiecatchers"),
+        StoreItem("Dan the Man", "com.halfbrick.dantheman"),
+        StoreItem("Swordigo", "com.touchfoo.swordigo"),
+        StoreItem("Bloons TD 6", "com.ninjakiwi.bloonstd6"),
+        StoreItem("Kingdom Rush", "com.ironhidegames.android.kingdomrush"),
+        StoreItem("Kingdom Rush Frontiers", "com.ironhidegames.android.kingdomrushfrontiers"),
+        StoreItem("Cut the Rope", "com.zeptolab.ctr.ads"),
+        StoreItem("Cut the Rope 2", "com.zeptolab.ctr2.f2p.google"),
+        StoreItem("Talking Tom", "com.outfit7.mytalkingtomfree"),
+        StoreItem("My Talking Angela", "com.outfit7.mytalkingangelafree"),
+        StoreItem("My Talking Tom 2", "com.outfit7.mytalkingtom2"),
+        StoreItem("Township", "com.playrix.township"),
+        StoreItem("SimCity BuildIt", "com.ea.game.simcitymobile_row"),
+        StoreItem("The Sims FreePlay", "com.ea.games.simsfreeplay_row"),
+        StoreItem("Fall Guys", "com.mediatonic.fallguys"),
+        StoreItem("Rocket League Sideswipe", "com.Psyonix.RL2D")
+    )
+    
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -602,7 +723,7 @@ class MainActivity : ComponentActivity() {
     @Composable
     fun Apps() {
         val apps = remember {
-            usefulApps.distinctBy { it.packageName }
+            (usefulApps + moreApps).distinctBy { it.packageName }
         }
         StoreGrid(items = apps)
     }
@@ -751,9 +872,9 @@ class MainActivity : ComponentActivity() {
                 StoreItem("Cookie Run Kingdom", "com.devsisters.ck"),
                 StoreItem("Gardenscapes", "com.playrix.gardenscapes"),
                 StoreItem("Fishdom", "com.playrix.fishdomdd.gplay")
-            )
+            ) + moreGames
         }
-        StoreGrid(items = games)
+        StoreGrid(items = games.distinctBy { it.packageName })
     }
 
     @Composable
