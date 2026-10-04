@@ -425,13 +425,15 @@ class MainActivity : ComponentActivity() {
         return loadBitmap("https://www.google.com/s2/favicons?domain=$host&sz=128", "site:$host")
     }
     @Composable
-    private fun PlayStoreCard(item: StoreItem, loadDelayMs: Long = 0L) {
-        // Never decode/download remote bitmaps for catalog cards. A stable vector
-        // placeholder prevents Android 11 memory pressure and startup crashes.
-        val online = hasInternet()
-        val blocked = getSharedPreferences("blocked", MODE_PRIVATE)
-            .getBoolean(item.packageName, false)
-
+    private fun PlayStoreCard(
+        item: StoreItem,
+        online: Boolean,
+        blocked: Boolean,
+        loadDelayMs: Long = 0L
+    ) {
+        // Keep system-service and SharedPreferences calls out of every grid card.
+        // Android 11 can make dozens of synchronous calls during the first Compose
+        // frame noticeably slower, especially on a cold start.
         Card(modifier = Modifier.padding(4.dp).fillMaxWidth()) {
             Column(
                 modifier = Modifier.fillMaxWidth().padding(6.dp),
@@ -575,7 +577,8 @@ class MainActivity : ComponentActivity() {
                 contentPadding = PaddingValues(bottom = 8.dp)
             ) {
                 itemsIndexed(visibleApps, key = { _, it -> it.packageName }) { index, app ->
-                    PlayStoreCard(app, index * 140L)
+                    val isBlocked = app.packageName in blockedPackages
+                    PlayStoreCard(app, online, isBlocked, index * 140L)
                 }
             }
         }
@@ -715,13 +718,16 @@ class MainActivity : ComponentActivity() {
                     CircularProgressIndicator(modifier = Modifier.size(28.dp), strokeWidth = 3.dp)
                 }
             }
+            val blockedPackages = getSharedPreferences("blocked", MODE_PRIVATE)
+                .all.filterValues { it is Boolean && it }.keys
             LazyVerticalGrid(
                 columns = GridCells.Fixed(4),
                 modifier = Modifier.weight(1f),
                 contentPadding = PaddingValues(bottom = 8.dp)
             ) {
                 items(games, key = { it.packageName }) { game ->
-                    PlayStoreCard(game)
+                    val isBlocked = game.packageName in blockedPackages
+                    PlayStoreCard(game, online, isBlocked)
                 }
             }
         }
