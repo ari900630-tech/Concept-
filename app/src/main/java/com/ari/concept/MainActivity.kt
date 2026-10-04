@@ -406,9 +406,15 @@ class MainActivity : ComponentActivity() {
     }
     @Composable
     private fun PlayStoreIcon(packageName: String, label: String) {
-        var bitmap by remember(packageName) { mutableStateOf<Bitmap?>(null) }
+        val cached = remember(packageName) {
+            synchronized(safeIconLock) { safeIconCache.get(packageName) }
+        }
+        var bitmap by remember(packageName) { mutableStateOf(cached) }
         LaunchedEffect(packageName) {
-            bitmap = withContext(Dispatchers.IO) { loadPlayStoreIconSafe(packageName) }
+            if (bitmap == null) {
+                val loaded = withContext(Dispatchers.IO) { loadPlayStoreIconSafe(packageName) }
+                if (loaded != null) bitmap = loaded
+            }
         }
         if (bitmap != null) {
             androidx.compose.foundation.Image(
@@ -421,7 +427,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private val safeIconCache = LruCache<String, Bitmap>(32)
+    private val safeIconCache = LruCache<String, Bitmap>(150)
     private val safeIconLock = Any()
 
     private fun loadPlayStoreIconSafe(packageName: String): Bitmap? {
@@ -472,7 +478,7 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxWidth().height(34.dp)
                 )
                 Button(
-                    onClick = { openPlay(item.packageName) },
+                    onClick = { runCatching { openPlay(item.packageName) } },
                     modifier = Modifier.fillMaxWidth().height(34.dp),
                     contentPadding = PaddingValues(0.dp)
                 ) {
