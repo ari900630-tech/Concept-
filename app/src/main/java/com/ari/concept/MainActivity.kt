@@ -344,7 +344,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private val imageCache = LruCache<String, Bitmap>(8)
+    private val imageCache = LruCache<String, Bitmap>(2)
 
     private fun installedDrawable(pkg: String): android.graphics.drawable.Drawable? =
         runCatching { packageManager.getApplicationInfo(pkg, PackageManager.GET_META_DATA).loadIcon(packageManager) }.getOrNull()
@@ -429,11 +429,11 @@ class MainActivity : ComponentActivity() {
     }
     @Composable
     private fun PlayStoreCard(item: StoreItem, loadDelayMs: Long = 0L) {
-        var bitmap by remember(item.packageName) { mutableStateOf(imageCache.get("play:" + item.packageName)) }
-        val localIcon = remember(item.packageName) { installedDrawable(item.packageName) }
+        // Never decode/download remote bitmaps for catalog cards. A stable vector
+        // placeholder prevents Android 11 memory pressure and startup crashes.
         val online = hasInternet()
-
-        val blocked = getSharedPreferences("blocked", MODE_PRIVATE).getBoolean(item.packageName, false)
+        val blocked = getSharedPreferences("blocked", MODE_PRIVATE)
+            .getBoolean(item.packageName, false)
 
         Card(modifier = Modifier.padding(4.dp).fillMaxWidth()) {
             Column(
@@ -444,19 +444,11 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxWidth().height(68.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    when {
-                        bitmap != null -> Image(bitmap!!.asImageBitmap(), item.label, Modifier.size(58.dp))
-                        localIcon != null -> androidx.compose.ui.viewinterop.AndroidView(
-                            factory = {
-                                android.widget.ImageView(it).apply {
-                                    setImageDrawable(localIcon)
-                                    scaleType = android.widget.ImageView.ScaleType.CENTER_INSIDE
-                                }
-                            },
-                            modifier = Modifier.size(58.dp)
-                        )
-                        else -> Icon(Icons.Default.SportsEsports, item.label, Modifier.size(42.dp))
-                    }
+                    Icon(
+                        imageVector = Icons.Default.SportsEsports,
+                        contentDescription = item.label,
+                        modifier = Modifier.size(44.dp)
+                    )
                 }
                 Text(
                     item.label,
@@ -478,32 +470,6 @@ class MainActivity : ComponentActivity() {
 
     @Composable
     fun App() {
-        var ready by remember { mutableStateOf(false) }
-
-        LaunchedEffect(Unit) {
-            delay(1000)
-            ready = true
-        }
-
-        if (!ready) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Box(Modifier.size(112.dp), contentAlignment = Alignment.Center) {
-                    Image(
-                        painter = painterResource(id = R.drawable.ic_launcher),
-                        contentDescription = "Concept",
-                        modifier = Modifier.size(68.dp)                    )
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(104.dp),
-                        strokeWidth = 3.dp
-                    )
-                }
-            }
-            return
-        }
-
         var tab by remember { mutableIntStateOf(0) }
         val labels = listOf("משחקים", "אפליקציות", "אתרים", "חסימה", "הגדרות")
         val icons = listOf(
