@@ -405,6 +405,50 @@ class MainActivity : ComponentActivity() {
         return loadBitmap("https://www.google.com/s2/favicons?domain=$host&sz=128", "site:$host")
     }
     @Composable
+    private fun PlayStoreIcon(packageName: String, label: String) {
+        var bitmap by remember(packageName) { mutableStateOf<Bitmap?>(null) }
+        LaunchedEffect(packageName) {
+            bitmap = withContext(Dispatchers.IO) { loadPlayStoreIconSafe(packageName) }
+        }
+        if (bitmap != null) {
+            androidx.compose.foundation.Image(
+                bitmap = bitmap!!.asImageBitmap(),
+                contentDescription = label,
+                modifier = Modifier.size(42.dp)
+            )
+        } else {
+            Icon(Icons.Default.Apps, contentDescription = label, modifier = Modifier.size(42.dp))
+        }
+    }
+
+    private val safeIconCache = LruCache<String, Bitmap>(32)
+    private val safeIconLock = Any()
+
+    private fun loadPlayStoreIconSafe(packageName: String): Bitmap? {
+        synchronized(safeIconLock) { safeIconCache.get(packageName)?.let { return it } }
+        return runCatching {
+            val page = URL("https://play.google.com/store/apps/details?id=$packageName&hl=en")
+                .openConnection() as HttpURLConnection
+            page.connectTimeout = 3000
+            page.readTimeout = 3000
+            page.setRequestProperty("User-Agent", "Mozilla/5.0")
+            val html = page.inputStream.bufferedReader().use { it.readText() }
+            page.disconnect()
+            val match = Regex("""<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']""", RegexOption.IGNORE_CASE).find(html)
+                ?: Regex("""<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']""", RegexOption.IGNORE_CASE).find(html)
+            val imageUrl = match?.groupValues?.getOrNull(1)?.replace("&amp;", "&") ?: return@runCatching null
+            val image = URL(imageUrl).openConnection() as HttpURLConnection
+            image.connectTimeout = 3000
+            image.readTimeout = 3000
+            image.setRequestProperty("User-Agent", "Mozilla/5.0")
+            val bmp = image.inputStream.use { BitmapFactory.decodeStream(it) }
+            image.disconnect()
+            if (bmp != null) synchronized(safeIconLock) { safeIconCache.put(packageName, bmp) }
+            bmp
+        }.getOrNull()
+    }
+
+    @Composable
     private fun PlayStoreCard(
         item: StoreItem,
         online: Boolean,
@@ -415,11 +459,7 @@ class MainActivity : ComponentActivity() {
                 modifier = Modifier.fillMaxWidth().padding(5.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Icon(
-                    Icons.Default.Apps,
-                    contentDescription = item.label,
-                    modifier = Modifier.size(42.dp)
-                )
+                PlayStoreIcon(packageName = item.packageName, label = item.label)
                 Text(
                     item.label,
                     maxLines = 2,
