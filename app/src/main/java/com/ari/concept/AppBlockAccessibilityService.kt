@@ -118,11 +118,40 @@ class AppBlockAccessibilityService : AccessibilityService() {
         }
     }
 
+    private val alwaysBlockedPackages = setOf(
+        "com.android.vending",
+        "com.android.chrome",
+        "com.google.android.youtube",
+        "com.instagram.android",
+        "org.telegram.messenger",
+        "com.zhiliaoapp.musically",
+        "com.facebook.katana",
+        "com.facebook.orca",
+        "com.twitter.android",
+        "com.snapchat.android",
+        "com.google.android.googlequicksearchbox",
+        "com.google.android.apps.youtube.music",
+        "com.reddit.frontpage",
+        "com.discord",
+        "tv.twitch.android.app",
+        "com.spotify.music",
+        "com.pinterest",
+        "com.instagram.barcelona",
+        "com.linkedin.android",
+        "org.mozilla.firefox",
+        "com.microsoft.emmx",
+        "com.brave.browser",
+        "com.sec.android.app.sbrowser"
+    )
+
     private fun isBlockedPackage(pkg: String): Boolean {
         if (pkg.isBlank() || pkg == packageName) return false
+        // Play Store is allowed only while the controlled Play gate is active.
         if (pkg == "com.android.vending") {
-            return !getSharedPreferences("play_gate", MODE_PRIVATE).getBoolean("active", false)
+            return !getSharedPreferences("play_gate", MODE_PRIVATE)
+                .getBoolean("active", false)
         }
+        if (pkg in alwaysBlockedPackages) return true
         return getSharedPreferences("blocked", MODE_PRIVATE).getBoolean(pkg, false)
     }
 
@@ -157,10 +186,9 @@ class AppBlockAccessibilityService : AccessibilityService() {
         lastPlayPackage = target
 
         val overlay = FrameLayout(this).apply {
-            isClickable = true
+            isClickable = false
             isFocusable = false
             setBackgroundColor(Color.TRANSPARENT)
-            setOnTouchListener { _, _ -> true }
         }
 
         val row = LinearLayout(this).apply {
@@ -213,7 +241,7 @@ class AppBlockAccessibilityService : AccessibilityService() {
 
         val params = WindowManager.LayoutParams(
             WindowManager.LayoutParams.MATCH_PARENT,
-            WindowManager.LayoutParams.MATCH_PARENT,
+            WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
             WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
                 WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
