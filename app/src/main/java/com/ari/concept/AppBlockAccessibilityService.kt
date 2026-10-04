@@ -33,7 +33,9 @@ class AppBlockAccessibilityService : AccessibilityService() {
     private var disableApproved = false
     private var lastPlayPackage = ""
     private var playInstallButton: Button? = null
+    private var playUpdateButton: Button? = null
     private var playInstallInProgress = false
+    private var playUpdateInProgress = false
     private var lastPlayReopenAt = 0L
     private val chromeGuards = mutableListOf<View>()
     private val mainHandler = Handler(Looper.getMainLooper())
@@ -117,9 +119,10 @@ class AppBlockAccessibilityService : AccessibilityService() {
     }
 
     private fun isBlockedPackage(pkg: String): Boolean {
-        if (pkg.isBlank() || pkg == packageName ||
-            pkg == "com.android.chrome" || pkg == "com.android.vending"
-        ) return false
+        if (pkg.isBlank() || pkg == packageName) return false
+        if (pkg == "com.android.vending") {
+            return !getSharedPreferences("play_gate", MODE_PRIVATE).getBoolean("active", false)
+        }
         return getSharedPreferences("blocked", MODE_PRIVATE).getBoolean(pkg, false)
     }
 
@@ -176,8 +179,16 @@ class AppBlockAccessibilityService : AccessibilityService() {
                 clickPlayAction(listOf("התקנה", "התקן", "Install", "קבל", "Get", "Download", "הורד"), target)
             }
         }
-        addPlayButton(row, "עדכן") {
-            clickPlayAction(listOf("עדכון", "עדכן", "Update"), target)
+        playUpdateButton = addPlayButton(row, "עדכן") {
+            if (playUpdateInProgress) {
+                clickPlayAction(listOf("ביטול", "בטל", "Cancel"), target)
+                playUpdateInProgress = false
+                setPlayUpdateButton(false)
+            } else {
+                playUpdateInProgress = true
+                setPlayUpdateButton(true)
+                clickPlayAction(listOf("עדכון", "עדכן", "Update"), target)
+            }
         }
         addPlayButton(row, "הסר") { requestUninstall(target) }
         addPlayButton(row, "חזור") {
@@ -260,12 +271,21 @@ class AppBlockAccessibilityService : AccessibilityService() {
         playInstallButton?.let { it.text = if (inProgress) "בטל" else "התקן" }
     }
 
+    private fun setPlayUpdateButton(inProgress: Boolean) {
+        playUpdateButton?.let { it.text = if (inProgress) "בטל" else "עדכן" }
+    }
+
     private fun updatePlayInstallState(root: AccessibilityNodeInfo) {
         val text = rootText(root).lowercase()
         val installing = listOf("מתקין", "מוריד", "ממתין", "installing", "downloading", "pending").any { it in text }
+        val updating = listOf("מעדכן", "updating", "update").any { it in text }
         if (playInstallInProgress || installing) {
             playInstallInProgress = true
             setPlayInstallButton(true)
+        }
+        if (playUpdateInProgress || updating) {
+            playUpdateInProgress = true
+            setPlayUpdateButton(true)
         }
     }
 
@@ -380,7 +400,9 @@ class AppBlockAccessibilityService : AccessibilityService() {
         playControlsView?.let { runCatching { windowManager?.removeView(it) } }
         playControlsView = null
         playInstallButton = null
+        playUpdateButton = null
         playInstallInProgress = false
+        playUpdateInProgress = false
     }
 
     private fun ejectBlockedAppAndClearRecent(pkg: String) {
